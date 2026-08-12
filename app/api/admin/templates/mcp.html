@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}MCP Servers{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>MCP Servers</h1>
+    <div class="sub">Model Context Protocol servers agents can connect to. Global servers are available to every tenant.</div>
+  </div>
+  <button type="button" class="btn head-action" data-panel-toggle="panel-create-mcp">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New MCP server
+  </button>
+</div>
+
+<div class="create-panel card" id="panel-create-mcp" {{ '' if not servers else 'hidden' }}>
+  <div class="create-panel-head">
+    <h2>Add MCP server</h2>
+    <button type="button" class="panel-x" data-panel-close="panel-create-mcp" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <form class="form" method="post" action="/admin/mcp" autocomplete="off">
+    <div class="grid-2">
+      <div class="field">
+        <label for="name">Name <span class="req">*</span></label>
+        <input id="name" name="name" placeholder="e.g. company-docs" autocomplete="off" required>
+        <span class="field-note">The identifier agents reference. Unique within its scope.</span>
+      </div>
+      <div class="field">
+        <label for="kind">Type <span class="req">*</span></label>
+        <select id="kind" name="kind" required>
+          <option value="http">http (streamable HTTP)</option>
+          <option value="sse">sse (server-sent events)</option>
+        </select>
+        <span class="field-note">The transport the MCP server speaks.</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="url">URL <span class="req">*</span></label>
+      <input id="url" name="url" placeholder="https://mcp.example.com" autocomplete="off" required>
+      <span class="field-note">The server's endpoint URL.</span>
+    </div>
+
+    <div class="field">
+      <label for="tenant_id">Scope</label>
+      <select id="tenant_id" name="tenant_id">
+        <option value="">Global — available to all tenants</option>
+        {% for t in tenants %}
+        <option value="{{ t.id }}">{{ t.name }} ({{ t.id }})</option>
+        {% endfor %}
+      </select>
+      <span class="field-note">Global is best for shared, admin-defined agents. Tenant scope limits it to one organization.</span>
+    </div>
+
+    <div class="field">
+      <label for="headers">Headers (optional)</label>
+      <textarea id="headers" name="headers" rows="3" placeholder='{"Authorization": "Bearer …"}'></textarea>
+      <span class="field-note">JSON object of HTTP headers sent to the server (e.g. an auth token). Leave blank for none.</span>
+    </div>
+
+    <button type="submit">Add MCP server</button>
+  </form>
+</div>
+
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Type</th><th>URL</th><th>Scope</th><th>Auth</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in servers %}
+      <tr>
+        <td class="mono">{{ s.name }}</td>
+        <td><span class="badge badge-muted plain">{{ s.kind }}</span></td>
+        <td class="mono">{{ s.url or "—" }}</td>
+        <td>
+          {% if s.tenant_id %}<span class="badge badge-muted">{{ tenant_names.get(s.tenant_id, s.tenant_id) }}</span>
+          {% else %}<span class="badge badge-accent">global</span>{% endif %}
+        </td>
+        <td>{% if s.headers_json %}<span class="badge badge-ok">headers</span>{% else %}<span class="inf">none</span>{% endif %}</td>
+        <td>
+          <form class="inline" method="post" action="/admin/mcp/{{ s.id }}/delete"
+                onsubmit="return confirm('Delete MCP server {{ s.name }}? Agents referencing it will fail to resolve it.');">
+            <button class="danger sm" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="6">No MCP servers yet — add one above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

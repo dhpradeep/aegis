@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Billing{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>Billing</h1>
+    <div class="sub">Per-tenant pricing and the change log.</div>
+  </div>
+  {% if tenants %}
+  <button type="button" class="btn head-action" data-panel-toggle="panel-set-pricing">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Set pricing
+  </button>
+  {% endif %}
+</div>
+
+{% if not tenants %}
+<div class="card empty-hint">
+  <p>Billing pricing is set <strong>per tenant</strong>, and you don't have any tenants yet.</p>
+  <a class="btn sm" href="/admin/tenants">Create a tenant first →</a>
+  <span class="field-note">Once a tenant exists, a <strong>Set pricing</strong> button appears here to set its $/Mtok rates and markup.</span>
+</div>
+{% endif %}
+
+{% if tenants %}
+<div class="create-panel card" id="panel-set-pricing" hidden>
+  <div class="create-panel-head">
+    <h2>Set pricing</h2>
+    <button type="button" class="panel-x" data-panel-close="panel-set-pricing" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <form class="form" method="post" action="/admin/billing">
+    <label for="tenant_id">Tenant <span class="req">*</span></label>
+    <select id="tenant_id" name="tenant_id" required>
+      {% for t in tenants %}
+      <option value="{{ t.id }}">{{ t.name }} ({{ t.id }})</option>
+      {% endfor %}
+    </select>
+    <span class="field-note">The tenant this pricing applies to.</span>
+
+    <label for="price_in">Price per Mtok (input) <span class="req">*</span></label>
+    <input id="price_in" type="number" step="0.01" min="0" name="price_per_mtok_input" required>
+    <span class="field-note">What you charge per 1M input tokens, in dollars (e.g. 3.00).</span>
+
+    <label for="price_out">Price per Mtok (output) <span class="req">*</span></label>
+    <input id="price_out" type="number" step="0.01" min="0" name="price_per_mtok_output" required>
+    <span class="field-note">What you charge per 1M output tokens, in dollars (e.g. 15.00).</span>
+
+    <label for="markup">Markup <span class="req">*</span></label>
+    <input id="markup" type="number" step="0.01" min="0" name="markup" value="0" required>
+    <span class="field-note">Multiplier added on top of token cost. 0 = none, 0.2 = +20%.</span>
+
+    <button type="submit">Save pricing</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>Tenant</th><th>$/Mtok in</th><th>$/Mtok out</th><th>Markup</th></tr>
+    </thead>
+    <tbody>
+      {% for c in configs %}
+      <tr>
+        <td class="mono">{{ c.tenant_id }}</td>
+        <td>{{ c.price_per_mtok_input }}</td>
+        <td>{{ c.price_per_mtok_output }}</td>
+        <td>{{ "%.0f"|format(c.markup * 100) }}%</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="4">No billing configs yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="section-title">Change log</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for entry in cost_log %}
+      <tr>
+        <td>{{ entry.created_at }}</td>
+        <td>{{ entry.actor }}</td>
+        <td>{{ entry.action }}</td>
+        <td class="pre">{{ entry.detail_json }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="4">No billing changes logged yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

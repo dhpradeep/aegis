@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Usage{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Usage</h1>
+  <div class="sub">Your Claude plan quota, plus token consumption per tenant.</div>
+</div>
+
+{% macro ubar(label, bar, hint='') %}
+<div class="ubar {{ 'is-hot' if bar.percent >= 90 else ('is-warn' if bar.percent >= 70 else '') }}">
+  <div class="ubar-head">
+    <span class="ubar-label">{{ label }}{% if hint %} <span class="ubar-hint">{{ hint }}</span>{% endif %}</span>
+    <span class="ubar-pct">{{ bar.percent }}%</span>
+  </div>
+  <div class="ubar-track"><div class="ubar-fill" style="width: {{ [bar.percent, 100]|min }}%"></div></div>
+  {% if bar.resets_at %}<div class="ubar-sub" data-reset="{{ bar.resets_at }}">resets …</div>{% endif %}
+</div>
+{% endmacro %}
+
+<div class="section-title">Plan usage <span class="section-note">— live from your Claude subscription</span></div>
+{% if plan.available %}
+<div class="card usage-plan">
+  <div class="usage-bars">
+    {% if plan.session %}{{ ubar('Session', plan.session, '5-hour window') }}{% endif %}
+    {% if plan.weekly %}{{ ubar('Weekly — all models', plan.weekly) }}{% endif %}
+    {% if plan.weekly_opus %}{{ ubar('Weekly — Opus', plan.weekly_opus) }}{% endif %}
+    {% if plan.weekly_sonnet %}{{ ubar('Weekly — Sonnet', plan.weekly_sonnet) }}{% endif %}
+    {% for s in plan.scoped %}{{ ubar('Weekly — ' ~ s.label, s) }}{% endfor %}
+  </div>
+  {% if plan.extra_usage.enabled and plan.extra_usage.utilization is not none %}
+  <div class="usage-extra field-note">
+    Extra-usage credits: {{ plan.extra_usage.utilization|round }}% used
+    {% if plan.extra_usage.monthly_limit %}of {{ plan.extra_usage.monthly_limit }} {{ plan.extra_usage.currency or '' }} monthly{% endif %}.
+  </div>
+  {% endif %}
+  <div class="field-note">Percentages are how much of each limit you've used. Metering is per session and per week — subscription plans have no fixed monthly model quota.</div>
+</div>
+{% else %}
+<div class="card">
+  <p class="muted" style="margin:0">Plan usage isn't available — <a href="/admin/system">sign in to Claude</a> on the System page to connect your subscription.</p>
+</div>
+{% endif %}
+
+<div class="section-title">Token usage by tenant <span class="section-note">— metered from agent runs</span></div>
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th><th>Runs</th><th>Input tok</th><th>Output tok</th>
+        <th>Raw cost $</th><th>Priced cost $</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="mono">{{ row.tenant_id }}</td>
+        <td>{{ row.runs }}</td>
+        <td>{{ "{:,}".format(row.input_tokens) }}</td>
+        <td>{{ "{:,}".format(row.output_tokens) }}</td>
+        <td>{{ "%.4f"|format(row.cost_usd) }}</td>
+        <td>{{ "%.4f"|format(row.priced_cost_usd) if row.priced_cost_usd is not none else "—" }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="6">No usage recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+// Render reset timestamps in the viewer's local time.
+document.querySelectorAll(".ubar-sub[data-reset]").forEach(function (el) {
+  var iso = el.getAttribute("data-reset");
+  var d = new Date(iso);
+  if (isNaN(d)) { el.textContent = ""; return; }
+  var now = new Date();
+  var mins = Math.max(0, Math.round((d - now) / 60000));
+  var when;
+  if (mins < 60) when = "in " + mins + "m";
+  else if (mins < 60 * 24) when = "in " + Math.round(mins / 60) + "h";
+  else when = "in " + Math.round(mins / (60 * 24)) + "d";
+  el.textContent = "resets " + when + " · " + d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+});
+</script>
+{% endblock %}

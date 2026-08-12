@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Agents{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>Agents</h1>
+    <div class="sub">Reusable agent configurations: model, tools, prompt, and sub-agent roster.</div>
+  </div>
+  <a class="btn head-action" href="/admin/agents/new">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New agent
+  </a>
+</div>
+
+<div class="table-wrap scroll nowrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Model</th><th>Effort</th><th>Tools</th><th>Permission</th>
+        <th>Roster</th><th>Admin only</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in agents %}
+      <tr>
+        <td>{{ a.name }}</td>
+        <td class="mono">{{ a.model }}</td>
+        <td>{{ a.effort or "—" }}</td>
+        <td class="tools-cell">
+          <div class="tags">
+            {% for tool in a.allowed_tools_json|from_json %}
+            <span class="badge badge-muted plain">{{ tool }}</span>
+            {% else %}
+            <span class="muted">none</span>
+            {% endfor %}
+          </div>
+        </td>
+        <td>{{ a.permission_mode }}</td>
+        <td>{{ a.roster_json|from_json|length }}</td>
+        <td>
+          {% if a.is_admin_only %}<span class="badge badge-accent">admin</span>
+          {% else %}<span class="badge badge-muted plain">all</span>{% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a class="secondary sm btn" href="/admin/agents/{{ a.id }}/edit">Edit</a>
+            <form class="inline" method="post" action="/admin/agents/{{ a.id }}/delete"
+                  onsubmit="return confirm('Delete this agent? This cannot be undone.');">
+              <button class="danger sm" type="submit">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="8">No agents yet — create your first one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

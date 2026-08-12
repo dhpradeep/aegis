@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}System{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>System</h1>
+  <div class="sub">Claude runtime, live health, and runtime configuration.</div>
+</div>
+
+<div class="section-title">Claude runtime &amp; sign-in</div>
+<div class="sub" style="margin:-4px 0 14px">The agent runtime runs on your Claude Code CLI signed in to your subscription — no API key.</div>
+{% include "_setup.html" %}
+
+<div class="section-title">Health</div>
+{% include "_health.html" %}
+
+<div class="section-title">Runtime configuration</div>
+<div class="card">
+  <dl class="kv">
+    <dt>Max concurrent runs</dt><dd>{{ max_concurrent_runs }}</dd>
+    <dt>Run timeout</dt><dd>{{ run_timeout_s }}s</dd>
+    <dt>API docs</dt><dd><a href="/docs" target="_blank">OpenAPI / Swagger &nearr;</a></dd>
+  </dl>
+</div>
+{% endblock %}

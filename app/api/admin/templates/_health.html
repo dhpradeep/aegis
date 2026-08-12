@@ -1,0 +1,40 @@
+<div class="card">
+  <div class="health-head">
+    <span class="health-overall loading" id="health-overall"><span class="lamp"></span> Checking…</span>
+    <button class="secondary sm" type="button" onclick="checkHealth()">Re-check</button>
+  </div>
+  <div class="check-grid" id="health-checks"></div>
+  <div class="updated" id="health-updated"></div>
+</div>
+<script>
+async function checkHealth() {
+  const overall = document.getElementById('health-overall');
+  const grid = document.getElementById('health-checks');
+  const updated = document.getElementById('health-updated');
+  overall.className = 'health-overall loading';
+  overall.innerHTML = '<span class="lamp"></span> Checking…';
+  try {
+    const r = await fetch('/healthz', { cache: 'no-store' });
+    const j = await r.json();
+    const ok = j.status === 'ok';
+    overall.className = 'health-overall ' + (ok ? 'ok' : 'degraded');
+    overall.innerHTML = '<span class="lamp"></span> ' + (ok ? 'All systems operational' : 'Service degraded');
+    const labels = { db: 'Database', claude_cli: 'Claude CLI' };
+    grid.innerHTML = '';
+    for (const [k, v] of Object.entries(j.checks || {})) {
+      const badge = v
+        ? '<span class="badge badge-ok">up</span>'
+        : '<span class="badge badge-danger">down</span>';
+      grid.insertAdjacentHTML('beforeend',
+        '<div class="check"><span class="name">' + (labels[k] || k) + '</span>' + badge + '</div>');
+    }
+    updated.textContent = 'Last checked ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    overall.className = 'health-overall degraded';
+    overall.innerHTML = '<span class="lamp"></span> Server unreachable';
+    grid.innerHTML = '';
+    updated.textContent = '';
+  }
+}
+checkHealth();
+</script>

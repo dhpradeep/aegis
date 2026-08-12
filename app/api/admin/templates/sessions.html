@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Sessions{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>Sessions</h1>
+    <div class="sub">All agent sessions across tenants.</div>
+  </div>
+  {% if tenants %}
+  <button type="button" class="btn head-action" data-panel-toggle="panel-create-session">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New session
+  </button>
+  {% endif %}
+</div>
+
+{% if tenants %}
+<div class="create-panel card" id="panel-create-session" {{ '' if not sessions else 'hidden' }}>
+  <div class="create-panel-head">
+    <h2>Create session</h2>
+    <button type="button" class="panel-x" data-panel-close="panel-create-session" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <form class="form" method="post" action="/admin/sessions">
+    <label for="tenant_id">Tenant <span class="req">*</span></label>
+    <select id="tenant_id" name="tenant_id" required>
+      {% for t in tenants %}
+      <option value="{{ t.id }}">{{ t.name }} ({{ t.id }})</option>
+      {% endfor %}
+    </select>
+    <span class="field-note">The tenant that will own this session and its usage.</span>
+
+    <label for="title">Title</label>
+    <input id="title" name="title" placeholder="e.g. onboarding chat">
+    <span class="field-note">Optional label to recognize the session later.</span>
+
+    <label for="agent_id">Agent <span class="req">*</span></label>
+    <select id="agent_id" name="agent_id" required>
+      {% for a in agents %}
+      <option value="{{ a.id }}" {{ 'selected' if a.name == 'default' else '' }}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <span class="field-note">The agent config (model, tools, permissions) this session runs with.</span>
+
+    <button type="submit">Create session</button>
+  </form>
+</div>
+{% else %}
+<div class="card empty-hint">
+  <p>Sessions run under a <strong>tenant</strong>, and you don't have any tenants yet.</p>
+  <a class="btn sm" href="/admin/tenants">Create a tenant first →</a>
+  <span class="field-note">Once a tenant exists, a <strong>New session</strong> button appears here to start one.</span>
+</div>
+{% endif %}
+
+<div class="section-title">All sessions</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Tenant</th><th>Agent</th><th>Status</th><th>Title</th><th>Created</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td><a class="mono" href="/admin/sessions/{{ s.id }}">{{ s.id }}</a></td>
+        <td class="mono">{{ s.tenant_id }}</td>
+        <td>{{ s.profile }}</td>
+        <td>
+          {% if s.status == "running" %}<span class="badge badge-warn">running</span>
+          {% elif s.status == "active" %}<span class="badge badge-ok">active</span>
+          {% else %}<span class="badge badge-muted">{{ s.status }}</span>{% endif %}
+        </td>
+        <td>{{ s.title or "—" }}</td>
+        <td>{{ s.created_at }}</td>
+        <td>
+          <form class="inline" method="post" action="/admin/sessions/{{ s.id }}/delete"
+                onsubmit="return confirm('Delete session {{ s.id }}? This removes its messages and workspace files permanently.');">
+            <button class="danger sm" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="7">No sessions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

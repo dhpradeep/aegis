@@ -1,0 +1,156 @@
+<div class="onb">
+  <div class="onb-step">
+    <div class="onb-icon" id="cli-icon">1</div>
+    <div class="onb-body">
+      <div class="onb-title">Claude runtime available</div>
+      <div class="onb-status" id="cli-status">{{ (('Bundled with the SDK' if status.bundled else 'Installed') ~ (' · ' ~ status.version if status.version else '')) if status.installed else 'Not available' }}</div>
+      <div class="onb-actions" id="cli-actions" {{ 'hidden' if status.installed else '' }}>
+        <button type="button" class="secondary sm" id="install-btn" onclick="doInstall()">Install runtime</button>
+        <span class="field-note">The CLI normally ships bundled with the SDK — this is only needed if it's missing.</span>
+      </div>
+      <pre class="onb-output" id="cli-output" hidden></pre>
+    </div>
+  </div>
+
+  <div class="onb-step">
+    <div class="onb-icon" id="auth-icon">2</div>
+    <div class="onb-body">
+      <div class="onb-title">Signed in to Claude</div>
+      <div class="onb-status" id="auth-status">{{ (status.email ~ ' · ' ~ (status.plan or 'subscription')) if status.logged_in else 'Not signed in' }}</div>
+      <div class="onb-signin" id="auth-signin" {{ 'hidden' if status.logged_in else '' }}>
+        <div class="onb-actions">
+          <button type="button" class="secondary sm" id="login-btn" onclick="doLogin()">Sign in from here</button>
+        </div>
+        <div class="onb-login" id="login-url" hidden>
+          <p><strong>1.</strong> Open this link and authorize:</p>
+          <div class="copy-row">
+            <a id="login-link" href="#" target="_blank" rel="noopener" class="onb-login-link">…</a>
+            <button type="button" class="secondary sm" data-copy="login-link" onclick="copyEl(this)">Copy</button>
+          </div>
+          <p style="margin-top:12px"><strong>2.</strong> Claude shows an <em>authorization code</em> — paste it here:</p>
+          <div class="copy-row">
+            <input id="code-input" class="mono" placeholder="Paste authorization code…" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn sm" id="code-submit" onclick="submitCode()">Sign in</button>
+          </div>
+          <div class="field-note" id="code-msg"></div>
+        </div>
+        <div class="onb-fallback">
+          <div class="onb-fallback-label">Or sign in from a terminal (always works):</div>
+          <div class="copy-row">
+            <code id="login-cmd">docker exec -it aegis claude auth login</code>
+            <button type="button" class="secondary sm" data-copy="login-cmd" onclick="copyEl(this)">Copy</button>
+          </div>
+          <span class="field-note">Not using Docker? Just run <code>claude auth login</code> on the host.</span>
+        </div>
+      </div>
+      <div class="onb-actions" id="auth-connected" {{ '' if status.logged_in else 'hidden' }}>
+        <button type="button" class="secondary sm" id="logout-btn" onclick="doLogout()">Sign out &amp; switch account</button>
+        <span class="field-note">Disconnects this Claude account so you can sign in with a different one.</span>
+        <div class="field-note" id="logout-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="onb-done" id="onb-done" hidden>
+    <span class="badge badge-ok">Ready</span>
+    <span>Agent runtime is connected and ready.</span>
+  </div>
+</div>
+
+<script>
+function setStep(key, ok, text) {
+  var icon = document.getElementById(key + "-icon");
+  icon.className = "onb-icon" + (ok ? " ok" : "");
+  icon.textContent = ok ? "✓" : (key === "cli" ? "1" : "2");
+  document.getElementById(key + "-status").textContent = text;
+}
+async function refresh() {
+  try {
+    var r = await fetch("/admin/onboarding/status");
+    if (!r.ok) return null;
+    var s = await r.json();
+    setStep("cli", s.installed, s.installed ? ((s.bundled ? "Bundled with the SDK" : "Installed") + (s.version ? " · " + s.version : "")) : "Not available");
+    setStep("auth", s.logged_in, s.logged_in ? ((s.email || "") + " · " + (s.plan || "subscription")) : "Not signed in");
+    document.getElementById("cli-actions").hidden = s.installed;
+    // Signed in → hide the sign-in flow, show the sign-out control.
+    document.getElementById("auth-signin").hidden = s.logged_in;
+    document.getElementById("auth-connected").hidden = !s.logged_in;
+    document.getElementById("onb-done").hidden = !s.ready;
+    return s;
+  } catch (_) { return null; }
+}
+async function doInstall() {
+  var out = document.getElementById("cli-output");
+  var btn = document.getElementById("install-btn");
+  btn.disabled = true; out.hidden = false; out.textContent = "Working… (this can take a minute)";
+  try {
+    var r = await fetch("/admin/onboarding/install", { method: "POST" });
+    var d = await r.json();
+    out.textContent = d.output || (d.ok ? "Done." : "Failed.");
+  } catch (e) { out.textContent = String(e); }
+  btn.disabled = false; refresh();
+}
+async function doLogin() {
+  var box = document.getElementById("login-url");
+  var link = document.getElementById("login-link");
+  var btn = document.getElementById("login-btn");
+  btn.disabled = true; box.hidden = false; link.textContent = "Starting…"; link.removeAttribute("href");
+  try {
+    var r = await fetch("/admin/onboarding/login", { method: "POST" });
+    var d = await r.json();
+    if (d.ok && d.url) {
+      link.textContent = d.url; link.href = d.url;
+      document.getElementById("code-msg").textContent = "";
+      document.getElementById("code-input").value = "";
+    } else { box.hidden = true; }
+  } catch (e) { box.hidden = true; }
+  btn.disabled = false;
+}
+async function submitCode() {
+  var inp = document.getElementById("code-input");
+  var btn = document.getElementById("code-submit");
+  var msg = document.getElementById("code-msg");
+  var code = inp.value.trim();
+  if (!code) { msg.textContent = "Paste the authorization code first."; return; }
+  btn.disabled = true; msg.textContent = "Signing in…";
+  try {
+    var r = await fetch("/admin/onboarding/login/code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code }),
+    });
+    var d = await r.json();
+    if (d.ok) { msg.textContent = "Signed in ✓"; refresh(); }
+    else { msg.textContent = d.error || "Sign-in failed. Try again."; }
+  } catch (e) { msg.textContent = String(e); }
+  btn.disabled = false;
+}
+async function doLogout() {
+  var btn = document.getElementById("logout-btn");
+  var msg = document.getElementById("logout-msg");
+  if (!confirm("Sign out of this Claude account? Agent runs will stop working until you sign in again.")) return;
+  btn.disabled = true; msg.textContent = "Signing out…";
+  try {
+    var r = await fetch("/admin/onboarding/logout", { method: "POST" });
+    var d = await r.json();
+    if (d.ok) { msg.textContent = ""; refresh(); }
+    else { msg.textContent = d.error || "Sign-out failed."; }
+  } catch (e) { msg.textContent = String(e); }
+  btn.disabled = false;
+}
+function copyEl(btn) {
+  var el = document.getElementById(btn.getAttribute("data-copy"));
+  var text = (el.value != null && el.value !== "") ? el.value : el.textContent;
+  var done = function () {
+    btn.textContent = "Copied ✓";
+    setTimeout(function () { btn.textContent = "Copy"; }, 1600);
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(done).catch(done);
+  } else {
+    done();
+  }
+}
+setInterval(refresh, 3000);
+refresh();
+</script>

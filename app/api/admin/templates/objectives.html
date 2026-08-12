@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Objectives{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>Objectives</h1>
+    <div class="sub">Goal-driven autonomous runs across tenants.</div>
+  </div>
+  {% if key_options and agent_options %}
+  <button type="button" class="btn head-action" data-panel-toggle="panel-create-objective">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New objective
+  </button>
+  {% endif %}
+</div>
+
+{% if key_options and agent_options %}
+<div class="create-panel card" id="panel-create-objective" {{ '' if not objectives else 'hidden' }}>
+  <div class="create-panel-head">
+    <h2>Launch objective</h2>
+    <button type="button" class="panel-x" data-panel-close="panel-create-objective" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <form class="form" method="post" action="/admin/objectives">
+    <label for="api_key_id">Attribution key <span class="req">*</span></label>
+    <select id="api_key_id" name="api_key_id" required>
+      {% for k in key_options %}
+      <option value="{{ k.id }}">{{ k.label }}</option>
+      {% endfor %}
+    </select>
+    <span class="field-note">The tenant &amp; key this run's usage and cost are billed to.</span>
+
+    <label for="agent_id">Agent <span class="req">*</span></label>
+    <select id="agent_id" name="agent_id" required>
+      {% for a in agent_options %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <span class="field-note">The agent that runs the loop (its model, tools, and roster).</span>
+
+    <label for="goal">Goal <span class="req">*</span></label>
+    <textarea id="goal" name="goal" rows="3" placeholder="e.g. Analyze sales.csv and write summary.md with the top 3 trends" required></textarea>
+    <span class="field-note">What you want accomplished, in plain language.</span>
+
+    <label for="rubric">Success rubric <span class="req">*</span></label>
+    <textarea id="rubric" name="rubric" rows="3" placeholder="e.g. summary.md exists, names 3 concrete trends, each backed by a number from the data" required></textarea>
+    <span class="field-note">Criteria the LLM evaluator grades each iteration against. Be specific and checkable.</span>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="max_iterations">Max iterations</label>
+        <input id="max_iterations" type="number" min="1" name="max_iterations" placeholder="Agent default">
+        <span class="field-note">Cap on act→grade cycles. Blank uses the agent's default.</span>
+      </div>
+      <div class="field">
+        <label for="max_cost_usd">Max cost ($)</label>
+        <input id="max_cost_usd" type="number" step="0.01" min="0" name="max_cost_usd" placeholder="Agent default">
+        <span class="field-note">Stops the run once this cost accrues. Blank uses the agent's default.</span>
+      </div>
+    </div>
+
+    <button type="submit">Launch objective</button>
+  </form>
+</div>
+{% else %}
+<div class="card empty-hint">
+  <p>An objective needs an <strong>API key</strong> to attribute its usage to, and you don't have one yet.</p>
+  <a class="btn sm" href="/admin/keys">Set up a tenant &amp; key →</a>
+  <span class="field-note">Once a key exists, a <strong>New objective</strong> button appears here to launch autonomous runs.</span>
+</div>
+{% endif %}
+
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Tenant</th><th>Agent</th><th>Status</th><th>Iterations</th><th>Cost</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for o in objectives %}
+      <tr>
+        <td><a class="mono" href="/admin/objectives/{{ o.id }}">{{ o.id }}</a></td>
+        <td class="mono">{{ o.tenant_id }}</td>
+        <td>{{ agent_names.get(o.agent_id, o.agent_id) }}</td>
+        <td>
+          {% if o.status == "succeeded" %}<span class="badge badge-ok">{{ o.status }}</span>
+          {% elif o.status in ("failed", "budget_exhausted", "permission_blocked", "evaluation_error") %}<span class="badge badge-danger">{{ o.status }}</span>
+          {% elif o.status in ("queued", "running") %}<span class="badge badge-warn">{{ o.status }}</span>
+          {% else %}<span class="badge badge-muted">{{ o.status }}</span>{% endif %}
+        </td>
+        <td>{{ o.iterations_done }}/{{ o.max_iterations }}</td>
+        <td>${{ "%.4f"|format(o.cost_usd or 0.0) }}</td>
+        <td>{{ o.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="7">No objectives yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

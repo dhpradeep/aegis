@@ -1,0 +1,43 @@
+[project]
+name = "aegis"
+version = "1.0.0"
+description = "Self-hostable multi-tenant agent platform that turns your Claude subscription into an API, with an admin dashboard."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "dhpradeep", email = "dhpradeep25@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "alembic>=1.19.1",
+    "claude-agent-sdk>=0.2.134",
+    "fastapi>=0.141.1",
+    "greenlet>=3.5.4",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
+    "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.0",
+    "uvicorn[standard]>=0.52.1",
+]
+
+[project.scripts]
+aegis = "app.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.8.13,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "anyio>=4.14.2",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]

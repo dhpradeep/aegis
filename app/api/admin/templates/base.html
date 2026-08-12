@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin{% endblock %} · Aegis</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/static/favicon.svg?v={{ asset_version }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/static/dashboard.css?v={{ asset_version }}">
+  <script>
+    // Default to light; use dark only if the user explicitly chose it. Applied
+    // before first paint to avoid a flash.
+    (function () {
+      var t;
+      try { t = localStorage.getItem('admin-theme'); } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+    })();
+  </script>
+</head>
+<body>
+  {% block body %}
+  {% set path = request.url.path if request else "" %}
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span>
+        <span class="brand-name">Aegis</span><br>
+        <span class="brand-sub">Admin Console</span>
+      </span>
+      <button type="button" class="nav-toggle" aria-label="Toggle navigation"
+              onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <a class="nav-link {{ 'active' if path == '/admin' else '' }}" href="/admin">
+      <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Overview
+    </a>
+
+    <div class="nav-label">Build</div>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/agents') else '' }}" href="/admin/agents">
+      <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></span> Agents
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/mcp') else '' }}" href="/admin/mcp">
+      <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v3a2 2 0 0 0 2 2h2M17.5 10v1"/></svg></span> MCP Servers
+    </a>
+
+    <div class="nav-label">Activity</div>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/sessions') else '' }}" href="/admin/sessions">
+      <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span> Sessions
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/objectives') else '' }}" href="/admin/objectives">
+      <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg></span> Objectives
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/completions') else '' }}" href="/admin/completions">
+      <span class="ic"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Completions
+    </a>
+
+    <div class="nav-label">Access</div>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/tenants') else '' }}" href="/admin/tenants">
+      <span class="ic"><svg viewBox="0 0 24 24"><path d="M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.85M16 3.5a4 4 0 0 1 0 7"/></svg></span> Tenants
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/keys') else '' }}" href="/admin/keys">
+      <span class="ic"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3m-3 3 2 2m-4-.5 2 2"/></svg></span> API Keys
+    </a>
+
+    <div class="nav-label">Settings</div>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/billing') else '' }}" href="/admin/billing">
+      <span class="ic"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></span> Billing
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/usage') else '' }}" href="/admin/usage">
+      <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg></span> Usage
+    </a>
+    <a class="nav-link {{ 'active' if path.startswith('/admin/system') else '' }}" href="/admin/system">
+      <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/></svg></span> System
+    </a>
+
+    <div class="nav-spacer"></div>
+    <div class="sidebar-foot">
+      <a class="foot-btn" href="https://github.com/dhpradeep/aegis" target="_blank" rel="noopener" title="View on GitHub" aria-label="View on GitHub">
+        <svg viewBox="0 0 16 16" style="fill:currentColor;stroke:none" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <button type="button" class="foot-btn theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle color theme">
+        <span class="theme-ic">
+          <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+        </span>
+      </button>
+      <a class="foot-btn foot-logout" href="/admin/logout" title="Log out" aria-label="Log out">
+        <svg viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/></svg>
+      </a>
+    </div>
+  </aside>
+
+  <script>
+    function _effectiveDark() {
+      var explicit = document.documentElement.getAttribute('data-theme');
+      if (explicit) return explicit === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function _syncThemeButton() {
+      var dark = _effectiveDark();
+      document.documentElement.classList.toggle('is-dark', dark);
+      var lbl = document.querySelector('.theme-label');
+      if (lbl) lbl.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    function toggleTheme() {
+      var next = _effectiveDark() ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('admin-theme', next); } catch (e) {}
+      _syncThemeButton();
+    }
+    _syncThemeButton();
+  </script>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+  <script>
+    // Show a setup banner on every admin page until the Claude CLI is installed
+    // and signed in (skipped on the Setup page itself).
+    (function () {
+      var main = document.querySelector(".main");
+      // Skip on the System page — that's where setup now lives.
+      if (!main || location.pathname.indexOf("/admin/system") === 0
+                || location.pathname.indexOf("/admin/onboarding") === 0) return;
+      fetch("/admin/onboarding/status").then(function (r) {
+        return r.ok ? r.json() : null;
+      }).then(function (s) {
+        if (!s || s.ready) return;
+        var msg = !s.installed ? "The Claude CLI isn't installed yet — agent runs won't work."
+                               : "You're not signed in to Claude — agent runs won't work.";
+        var b = document.createElement("div");
+        b.className = "setup-banner";
+        b.innerHTML = "<span class=\"sb-icon\">!</span><span class=\"sb-msg\"></span>"
+                    + "<a href=\"/admin/system\">Finish setup →</a>";
+        b.querySelector(".sb-msg").textContent = msg;
+        main.insertBefore(b, main.firstChild);
+      }).catch(function () {});
+    })();
+  </script>
+  <script src="/admin/static/dropdown.js?v={{ asset_version }}" defer></script>
+</body>
+</html>

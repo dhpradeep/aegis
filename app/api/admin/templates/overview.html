@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Overview</h1>
+  <div class="sub">Platform activity at a glance.</div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat">
+    <div class="label">Tenants</div>
+    <div class="value">{{ tenant_count }}</div>
+    <div class="foot"><a href="/admin/tenants">Manage &rarr;</a></div>
+  </div>
+  <div class="stat">
+    <div class="label">API Keys</div>
+    <div class="value">{{ key_count }}</div>
+    <div class="foot">{{ active_keys }} active</div>
+  </div>
+  <div class="stat">
+    <div class="label">Sessions</div>
+    <div class="value">{{ session_count }}</div>
+    <div class="foot"><a href="/admin/sessions">Browse &rarr;</a></div>
+  </div>
+</div>
+
+<div class="section-title">System health</div>
+{% include "_health.html" %}
+
+<div class="section-title">Recent sessions</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Tenant</th><th>Agent</th><th>Status</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for s in recent_sessions %}
+      <tr>
+        <td><a class="mono" href="/admin/sessions/{{ s.id }}">{{ s.id }}</a></td>
+        <td class="mono">{{ s.tenant_id }}</td>
+        <td>{{ s.profile }}</td>
+        <td>
+          {% if s.status == "running" %}<span class="badge badge-warn">running</span>
+          {% elif s.status == "active" %}<span class="badge badge-ok">active</span>
+          {% else %}<span class="badge badge-muted">{{ s.status }}</span>{% endif %}
+        </td>
+        <td>{{ s.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="5">No sessions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

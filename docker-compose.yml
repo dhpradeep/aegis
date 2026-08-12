@@ -1,0 +1,18 @@
+services:
+  aegis:
+    build: .
+    image: aegis
+    container_name: aegis
+    ports:
+      - "8000:8000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      SESSION_SECRET: ${SESSION_SECRET:-change-this-session-secret}
+    volumes:
+      - aegis-data:/data
+      - claude-config:/root/.claude
+    restart: unless-stopped
+
+volumes:
+  aegis-data:
+  claude-config:

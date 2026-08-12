@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Objective{% endblock %}
+{% block content %}
+{% if objective %}
+<div class="page-head">
+  <h1>Objective</h1>
+  <div class="sub mono">{{ objective.id }}</div>
+</div>
+
+<div class="card">
+  <dl class="kv">
+    <dt>Tenant</dt><dd class="mono">{{ objective.tenant_id }}</dd>
+    <dt>Agent</dt><dd>{{ agent.name if agent else objective.agent_id }}</dd>
+    <dt>Status</dt><dd>
+      {% if objective.status == "succeeded" %}<span class="badge badge-ok">{{ objective.status }}</span>
+      {% elif objective.status in ("failed", "budget_exhausted") %}<span class="badge badge-danger">{{ objective.status }}</span>
+      {% elif objective.status in ("queued", "running") %}<span class="badge badge-warn">{{ objective.status }}</span>
+      {% else %}<span class="badge badge-muted">{{ objective.status }}</span>{% endif %}
+    </dd>
+    <dt>Goal</dt><dd>{{ objective.goal }}</dd>
+    <dt>Rubric</dt><dd>{{ objective.rubric }}</dd>
+    <dt>Iterations</dt><dd>{{ objective.iterations_done }}/{{ objective.max_iterations }}</dd>
+    <dt>Cost</dt><dd>${{ "%.4f"|format(objective.cost_usd or 0.0) }}{% if objective.max_cost_usd %} / ${{ "%.4f"|format(objective.max_cost_usd) }} max{% endif %}</dd>
+    <dt>Session</dt><dd class="mono">
+      {% if objective.session_id %}<a href="/admin/sessions/{{ objective.session_id }}">{{ objective.session_id }}</a>{% else %}—{% endif %}
+    </dd>
+    <dt>Result</dt><dd>{{ objective.result_text or "—" }}</dd>
+    <dt>Created</dt><dd>{{ objective.created_at }}</dd>
+    <dt>Finished</dt><dd>{{ objective.finished_at or "—" }}</dd>
+  </dl>
+</div>
+
+<div class="section-title">Iteration trace</div>
+{% if not objective.session_id or not iterations %}
+<div class="card"><p class="muted">No iteration trace yet.</p></div>
+{% else %}
+{% for it in iterations %}
+<div class="turn">
+  <div class="turn-head">
+    <span class="turn-badge">Iteration {{ it.index }}</span>
+    <span class="turn-time">{{ it.started_at }}</span>
+  </div>
+  {% for text in it.texts %}
+  <div class="msg msg-assistant"><span class="who">Claude</span>{{ text }}</div>
+  {% else %}
+  <div class="msg muted">No assistant output recorded for this iteration.</div>
+  {% endfor %}
+  {% if it.evaluation %}
+  <div class="metrics">
+    <span class="chip">
+      {% if it.evaluation.satisfied %}<span class="badge badge-ok plain">satisfied</span>
+      {% else %}<span class="badge badge-warn plain">not satisfied</span>{% endif %}
+    </span>
+    <span class="chip">score {{ it.evaluation.score }}</span>
+  </div>
+  {% if it.evaluation.gaps %}
+  <div class="msg msg-tool">
+    <span class="who">Gaps</span>
+    <ul>
+      {% for gap in it.evaluation.gaps %}<li>{{ gap }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if it.evaluation.reasoning %}
+  <div class="msg msg-thinking">{{ it.evaluation.reasoning }}</div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if finished %}
+<div class="card">
+  <h2>Loop finished</h2>
+  <p>
+    {% if finished.status == "succeeded" %}<span class="badge badge-ok">{{ finished.status }}</span>
+    {% elif finished.status in ("failed", "budget_exhausted") %}<span class="badge badge-danger">{{ finished.status }}</span>
+    {% else %}<span class="badge badge-muted">{{ finished.status }}</span>{% endif %}
+  </p>
+</div>
+{% endif %}
+
+<details class="raw-log">
+  <summary>Raw event log ({{ events|length }} events)</summary>
+  <div class="table-wrap scroll">
+    <table>
+      <thead><tr><th>Seq</th><th>Type</th><th>Payload</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td>{{ e.seq }}</td>
+          <td><span class="badge badge-muted plain">{{ e.type }}</span></td>
+          <td class="pre">{{ e.payload_json }}</td>
+          <td>{{ e.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="4">No events yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% else %}
+<div class="page-head"><h1>Objective not found</h1></div>
+{% endif %}
+{% endblock %}

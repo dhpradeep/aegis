@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtualenv / tooling caches
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data (SQLite DB + agent workspaces)
+data/
+*.db
+*.db-*
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

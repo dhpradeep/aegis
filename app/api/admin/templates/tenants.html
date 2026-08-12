@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Tenants{% endblock %}
+{% block content %}
+<div class="page-head has-action">
+  <div class="page-head-text">
+    <h1>Tenants</h1>
+    <div class="sub">Organizations that own API keys and sessions.</div>
+  </div>
+  <button type="button" class="btn head-action" data-panel-toggle="panel-create-tenant">
+    <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New tenant
+  </button>
+</div>
+
+<div class="create-panel card" id="panel-create-tenant" {{ '' if not tenants else 'hidden' }}>
+  <div class="create-panel-head">
+    <h2>Create tenant</h2>
+    <button type="button" class="panel-x" data-panel-close="panel-create-tenant" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <form class="form" method="post" action="/admin/tenants">
+    <label for="tname">Name <span class="req">*</span></label>
+    <input id="tname" name="name" placeholder="e.g. acme-corp" required>
+    <span class="field-note">A human-readable name for the organization. You'll issue API keys to it next.</span>
+    <button type="submit">Create tenant</button>
+  </form>
+</div>
+
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>API keys</th><th>Default model</th><th>Created</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in tenants %}
+      <tr>
+        <td class="mono">{{ t.id }}</td>
+        <td>{{ t.name }}</td>
+        <td><span class="badge badge-muted plain">{{ key_counts.get(t.id, 0) }}</span></td>
+        <td>
+          <form class="inline" method="post" action="/admin/tenants/{{ t.id }}/model">
+            <select name="default_model" aria-label="Default model">
+              <option value="" {{ 'selected' if not t.default_model else '' }}>Global default ({{ global_default }})</option>
+              {% for m in model_choices %}
+              <option value="{{ m }}" {{ 'selected' if t.default_model == m else '' }}>{{ m }}</option>
+              {% endfor %}
+              {% if t.default_model and t.default_model not in model_choices %}
+              <option value="{{ t.default_model }}" selected>{{ t.default_model }}</option>
+              {% endif %}
+            </select>
+            <button class="secondary sm" type="submit">Set</button>
+          </form>
+        </td>
+        <td>{{ t.created_at }}</td>
+        <td><a href="/admin/keys">Manage keys &rarr;</a></td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="6">No tenants yet — create your first one below.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="muted" style="margin:-6px 0 22px;font-size:13px;">
+  The default model is used when an OpenAI-compatible <code>/v1/chat/completions</code> request omits <code>model</code>.
+  Blank uses the global default.
+</p>
+{% endblock %}
