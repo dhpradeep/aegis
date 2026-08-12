@@ -16,9 +16,9 @@ several tenants can safely share one subscription-backed agent runtime.
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)
 
-</div>
+![Aegis dashboard demo](docs/branding/aegis-demo.gif)
 
-![Overview dashboard](docs/screenshots/overview.png)
+</div>
 
 > [!IMPORTANT]
 > **Auth model — read before deploying.** Aegis drives Claude by shelling out to
