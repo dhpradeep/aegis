@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Completions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Completions</h1>
+  <div class="sub">Stored record of every stateless <code>/v1/chat/completions</code> call.</div>
+</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Tenant</th><th>Model</th><th>Mode</th><th>In</th><th>Out</th><th>Cost $</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a class="mono" href="/admin/completions/{{ r.id }}">{{ r.id }}</a></td>
+        <td class="mono">{{ r.tenant_id }}</td>
+        <td>{{ r.model }}</td>
+        <td>{% if r.streamed %}<span class="badge badge-accent plain">stream</span>{% else %}<span class="badge badge-muted plain">blocking</span>{% endif %}</td>
+        <td>{{ r.input_tokens }}</td>
+        <td>{{ r.output_tokens }}</td>
+        <td>{{ "%.4f"|format(r.cost_usd) }}</td>
+        <td>{{ r.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="8">No completions logged yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

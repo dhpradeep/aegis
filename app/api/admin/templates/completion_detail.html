@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Completion{% endblock %}
+{% block content %}
+{% if row %}
+<div class="page-head">
+  <h1>Completion</h1>
+  <div class="sub mono">{{ row.id }}</div>
+</div>
+<div class="card">
+  <dl class="kv">
+    <dt>Tenant</dt><dd class="mono">{{ row.tenant_id }}</dd>
+    <dt>API key</dt><dd class="mono">{{ row.api_key_id }}</dd>
+    <dt>Model</dt><dd>{{ row.model }}</dd>
+    <dt>Mode</dt><dd>{% if row.streamed %}streaming{% else %}blocking{% endif %}</dd>
+    <dt>Tokens</dt><dd>{{ row.input_tokens }} in · {{ row.output_tokens }} out</dd>
+    <dt>Cost</dt><dd>${{ "%.4f"|format(row.cost_usd) }}</dd>
+    <dt>Duration</dt><dd>{{ row.duration_ms }} ms</dd>
+    <dt>Created</dt><dd>{{ row.created_at }}</dd>
+  </dl>
+</div>
+
+<div class="section-title">Request messages</div>
+<div class="turn">
+  {% for m in messages %}
+  <div class="msg {{ 'msg-user' if m.role != 'assistant' else 'msg-assistant' }}">
+    <span class="who">{{ m.role }}</span>{{ m.content }}
+  </div>
+  {% else %}
+  <p class="muted">No messages recorded.</p>
+  {% endfor %}
+</div>
+
+<div class="section-title">Response</div>
+<div class="turn">
+  <div class="msg msg-assistant"><span class="who">Claude</span>{{ row.response_text or "" }}</div>
+</div>
+{% else %}
+<div class="page-head"><h1>Completion not found</h1></div>
+{% endif %}
+{% endblock %}

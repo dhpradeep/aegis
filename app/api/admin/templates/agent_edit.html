@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit agent" if agent else "New agent" }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ "Edit agent" if agent else "New agent" }}</h1>
+  <div class="sub">A reusable agent config: model, tools, permissions, and a sub-agent roster.</div>
+</div>
+
+<form class="agent-form" method="post" action="{{ '/admin/agents/' ~ agent.id if agent else '/admin/agents' }}">
+
+  <div class="card">
+    <h2>Identity</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="name">Name <span class="req">*</span></label>
+        <input id="name" name="name" value="{{ agent.name if agent else '' }}" placeholder="e.g. researcher" required>
+        <span class="field-note">Unique identifier for this agent.</span>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input id="description" name="description" value="{{ agent.description if agent else '' }}" placeholder="What this agent does">
+        <span class="field-note">Optional summary.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Model &amp; reasoning</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="model">Model <span class="req">*</span></label>
+        <input id="model" name="model" data-combobox data-options='{{ models|tojson }}'
+               value="{{ agent.model if agent else 'claude-sonnet-5' }}"
+               placeholder="Search or type a model id…" required>
+        <span class="field-note">Searchable — pick from the live list or type any model id.</span>
+      </div>
+      <div class="field">
+        <label for="effort">Effort</label>
+        <select id="effort" name="effort">
+          <option value="" {{ 'selected' if not (agent and agent.effort) else '' }}>Default</option>
+          {% for level in effort_levels %}
+          <option value="{{ level }}" {{ 'selected' if agent and agent.effort == level else '' }}>{{ level }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-note">Reasoning-effort hint. Default lets the model decide.</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="system_prompt">System prompt</label>
+      <textarea id="system_prompt" name="system_prompt" rows="6" placeholder="Instructions prepended to every run…">{{ agent.system_prompt if agent else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tools &amp; permissions</h2>
+    <div class="field">
+      <label>Allowed tools</label>
+      <div class="tool-checks">
+        {% for tool in tool_choices %}
+        <label class="tool-chip {{ 'on' if tool in selected_tools else '' }}">
+          <input type="checkbox" name="allowed_tools" value="{{ tool }}" {{ 'checked' if tool in selected_tools else '' }}> {{ tool }}
+        </label>
+        {% endfor %}
+      </div>
+      <span class="field-note">Tools this agent may call. <code>Bash</code> grants host command execution — restrict to admin-only agents.</span>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="permission_mode">Permission mode</label>
+        <select id="permission_mode" name="permission_mode">
+          {% for mode in permission_modes %}
+          <option value="{{ mode }}" {{ 'selected' if agent and agent.permission_mode == mode else ('selected' if not agent and mode == 'default' else '') }}>{{ mode }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-note"><code>acceptEdits</code> applies file edits automatically.</span>
+      </div>
+      <div class="field">
+        <label>Access</label>
+        <label class="switch-row"><input type="checkbox" name="is_admin_only" value="true" {{ 'checked' if agent and agent.is_admin_only else '' }}> Admin-only agent</label>
+        <span class="field-note">Only admin-issued sessions/objectives may use this agent.</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Autonomy</label>
+      <label class="switch-row switch-danger"><input type="checkbox" name="bypass_permissions" value="true" {{ 'checked' if agent and agent.bypass_permissions else '' }}> Bypass permissions (run any command without approval)</label>
+      <span class="field-note"><strong>Powerful &amp; risky.</strong> Lets the agent execute <em>any</em> command/tool with no approval gate — required for autonomous objectives that run <code>git</code>, deploys, builds, etc. Only enable for trusted, admin-only agents in an isolated workspace.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>MCP &amp; sub-agents</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="mcp_names">MCP servers</label>
+        <select id="mcp_names" name="mcp_names" multiple
+                data-placeholder="None selected" data-empty-text="No MCP servers configured">
+          {% for m in mcp_servers %}
+          <option value="{{ m.name }}" {{ 'selected' if m.name in selected_mcp else '' }}>{{ m.name }} ({{ m.kind }})</option>
+          {% endfor %}
+        </select>
+        <span class="field-note">Servers this agent can reach. Select any number.</span>
+      </div>
+      <div class="field">
+        <label for="roster">Roster (sub-agents)</label>
+        <select id="roster" name="roster" multiple data-max="5"
+                data-placeholder="None selected" data-empty-text="No eligible agents">
+          {% for r in roster_options %}
+          <option value="{{ r.id }}" {{ 'selected' if r.id in selected_roster else '' }}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-note">Up to 5 agents to delegate to (one level of nesting).</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Budgets</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="max_cost_usd">Max cost per run ($)</label>
+        <input id="max_cost_usd" type="number" step="0.01" min="0" name="max_cost_usd"
+               value="{{ agent.max_cost_usd if agent and agent.max_cost_usd is not none else '' }}"
+               placeholder="Blank = unlimited">
+        <span class="field-note">Stops a run once this cost accrues. <strong>Blank = unlimited.</strong></span>
+      </div>
+      <div class="field">
+        <label for="max_iterations">Max iterations</label>
+        <input id="max_iterations" type="number" min="1" name="max_iterations" value="{{ agent.max_iterations if agent else 6 }}">
+        <span class="field-note">Objective-loop iteration cap per run.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn secondary" href="/admin/agents">Cancel</a>
+    <button type="submit">{{ "Save changes" if agent else "Create agent" }}</button>
+  </div>
+</form>
+
+<script>
+  // Keep tool chips visually in sync with their checkbox state.
+  document.querySelectorAll('.tool-chip input[type="checkbox"]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      cb.closest('.tool-chip').classList.toggle('on', cb.checked);
+    });
+  });
+</script>
+{% endblock %}
