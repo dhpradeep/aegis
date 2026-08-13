@@ -18,6 +18,8 @@ several tenants can safely share one subscription-backed agent runtime.
 
 ![Aegis dashboard demo](docs/branding/aegis-demo.gif)
 
+<a href="https://www.producthunt.com/products/aegis-9/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-aegis&#0045;9" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1291793&theme=dark" alt="Aegis - Turn&#0032;your&#0032;Claude&#0032;subscription&#0032;into&#0032;a&#0032;multi&#0045;tenant&#0032;agent&#0032;API | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 </div>
 
 > [!IMPORTANT]
