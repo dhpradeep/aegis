@@ -11,7 +11,7 @@
     <dt>Tenant</dt><dd class="mono">{{ row.tenant_id }}</dd>
     <dt>API key</dt><dd class="mono">{{ row.api_key_id }}</dd>
     <dt>Model</dt><dd>{{ row.model }}</dd>
-    <dt>Mode</dt><dd>{% if row.streamed %}streaming{% else %}blocking{% endif %}</dd>
+    <dt>Mode</dt><dd>{% if row.streamed %}<span class="badge badge-accent plain">stream</span>{% else %}<span class="badge badge-muted plain">blocking</span>{% endif %}</dd>
     <dt>Tokens</dt><dd>{{ row.input_tokens }} in · {{ row.output_tokens }} out</dd>
     <dt>Cost</dt><dd>${{ "%.4f"|format(row.cost_usd) }}</dd>
     <dt>Duration</dt><dd>{{ row.duration_ms }} ms</dd>
@@ -19,20 +19,48 @@
   </dl>
 </div>
 
-<div class="section-title">Request messages</div>
-<div class="turn">
+<div class="section-title">Request messages · {{ messages|length }}</div>
+<div class="completion-thread">
   {% for m in messages %}
-  <div class="msg {{ 'msg-user' if m.role != 'assistant' else 'msg-assistant' }}">
-    <span class="who">{{ m.role }}</span>{{ m.content }}
-  </div>
+    {% if m.role == "system" %}
+      <details class="tool-result wide">
+        <summary><span class="tc-badge">system</span> system prompt · {{ "{:,}".format(m.text|length) }} chars</summary>
+        <div class="pre">{{ m.text }}</div>
+      </details>
+    {% elif m.role == "user" %}
+      <div class="crow crow-user"><div class="bubble b-user">{{ m.text }}</div></div>
+    {% elif m.role == "tool" %}
+      <div class="crow crow-ai"><span class="c-avatar ghost"></span>
+        <details class="tool-result">
+          <summary><span class="tc-badge">result</span>{% if m.tool_call_id %} <span class="mono">{{ m.tool_call_id }}</span>{% endif %}</summary>
+          <div class="pre">{{ m.text }}</div>
+        </details>
+      </div>
+    {% else %}
+      {% if m.text %}
+      <div class="crow crow-ai"><span class="c-avatar"></span><div class="bubble b-ai md-render">{{ m.text }}</div></div>
+      {% endif %}
+      {% for c in m.tool_calls %}
+      <div class="crow crow-ai"><span class="c-avatar ghost"></span>
+        <details class="tool-result">
+          <summary><span class="tc-badge">tool call</span> <span class="mono">{{ c.name }}</span>{% if c.id %} · <span class="mono muted">{{ c.id }}</span>{% endif %}</summary>
+          <div class="pre">{{ c.args }}</div>
+        </details>
+      </div>
+      {% endfor %}
+    {% endif %}
   {% else %}
   <p class="muted">No messages recorded.</p>
   {% endfor %}
 </div>
 
 <div class="section-title">Response</div>
-<div class="turn">
-  <div class="msg msg-assistant"><span class="who">Claude</span>{{ row.response_text or "" }}</div>
+<div class="completion-thread">
+  {% if row.response_text %}
+  <div class="crow crow-ai"><span class="c-avatar"></span><div class="bubble b-ai md-render">{{ row.response_text }}</div></div>
+  {% else %}
+  <p class="muted">No response text (tool calls only or run failed).</p>
+  {% endif %}
 </div>
 {% else %}
 <div class="page-head"><h1>Completion not found</h1></div>

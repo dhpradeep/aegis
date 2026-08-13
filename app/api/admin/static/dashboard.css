@@ -1026,3 +1026,20 @@ details.raw-log > summary:hover { color: var(--text); }
   .card { padding: 18px 16px; }
   .main { padding: 18px 12px 40px; }
 }
+
+/* ---- Completion detail --------------------------------------------------- */
+.muted { color: var(--muted); }
+.completion-thread { display: flex; flex-direction: column; gap: 9px; max-width: 880px; }
+.completion-thread .tool-result.wide { max-width: 100%; width: 100%; }
+.completion-thread .tool-result .pre { max-height: 420px; overflow: auto; }
+.completion-thread .tool-result > summary .mono { font-size: 11.5px; }
+.table-filters { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+.table-filters .dd { min-width: 260px; }
+.table-filters select { min-width: 260px; }
+.completion-thread .tool-result > summary .mono { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; }
+.md-code {
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.55;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; margin: 8px 0; overflow-x: auto; white-space: pre;
+}
+.b-user .md-code { background: rgba(255, 255, 255, .14); border-color: transparent; color: #fff; }

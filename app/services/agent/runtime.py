@@ -41,6 +41,8 @@ class RunConfig:
     timeout_s: int
     agents: dict | None = None
     effort: str | None = None
+    # Base set of built-in tools ([] disables them all); None keeps the default.
+    tools: list | None = None
 
 
 class AgentRuntime:
@@ -74,6 +76,8 @@ class AgentRuntime:
             kw["agents"] = cfg.agents
         if cfg.effort is not None:
             kw["effort"] = cfg.effort
+        if cfg.tools is not None:
+            kw["tools"] = cfg.tools
         return ClaudeAgentOptions(**kw)
 
     async def stream(self, cfg: RunConfig) -> AsyncIterator[dict]:

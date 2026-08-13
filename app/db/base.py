@@ -77,7 +77,7 @@ def reset_engine() -> None:
     global engine, SessionLocal
     settings = get_settings()
     ensure_sqlite_dir(settings.database_url)
-    new_engine = create_async_engine(settings.database_url, future=True)
+    new_engine = create_async_engine(settings.database_url, future=True, pool_pre_ping=True)
     engine._target = new_engine
     SessionLocal._target = async_sessionmaker(
         new_engine, expire_on_commit=False, class_=AsyncSession

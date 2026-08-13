@@ -668,17 +668,54 @@ async def session_delete_file(id: str, path: str, db: AsyncSession = Depends(get
 @router.get(
     "/completions", response_class=HTMLResponse, dependencies=[Depends(require_admin_cookie)]
 )
-async def completions_page(request: Request, db: AsyncSession = Depends(get_db)):
-    rows = (
-        (
-            await db.execute(
-                select(CompletionLog).order_by(CompletionLog.created_at.desc()).limit(100)
-            )
-        )
-        .scalars()
-        .all()
+async def completions_page(
+    request: Request, tenant: str = "", db: AsyncSession = Depends(get_db)
+):
+    q = select(CompletionLog).order_by(CompletionLog.created_at.desc()).limit(100)
+    if tenant:
+        q = q.where(CompletionLog.tenant_id == tenant)
+    rows = (await db.execute(q)).scalars().all()
+    tenants = (await db.execute(select(Tenant).order_by(Tenant.name))).scalars().all()
+    return templates.TemplateResponse(
+        request, "completions.html", {"rows": rows, "tenants": tenants, "tenant": tenant}
     )
-    return templates.TemplateResponse(request, "completions.html", {"rows": rows})
+
+
+def _completion_msg_text(content) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            p.get("text", "") for p in content if isinstance(p, dict) and p.get("type") == "text"
+        )
+    return str(content)
+
+
+def _completion_view_messages(raw: list) -> list[dict]:
+    out = []
+    for m in raw:
+        if not isinstance(m, dict):
+            continue
+        calls = []
+        for c in m.get("tool_calls") or []:
+            fn = (c or {}).get("function") or {}
+            args = fn.get("arguments") or "{}"
+            try:
+                args = json.dumps(json.loads(args), indent=2)
+            except (json.JSONDecodeError, TypeError):
+                pass
+            calls.append({"id": c.get("id") or "", "name": fn.get("name") or "", "args": args})
+        out.append(
+            {
+                "role": m.get("role") or "user",
+                "text": _completion_msg_text(m.get("content")),
+                "tool_calls": calls,
+                "tool_call_id": m.get("tool_call_id"),
+            }
+        )
+    return out
 
 
 @router.get(
@@ -691,7 +728,7 @@ async def completion_detail_page(id: str, request: Request, db: AsyncSession = D
     messages = []
     if row is not None:
         try:
-            messages = json.loads(row.request_json)
+            messages = _completion_view_messages(json.loads(row.request_json))
         except (json.JSONDecodeError, TypeError):
             messages = []
     return templates.TemplateResponse(

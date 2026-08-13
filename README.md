@@ -44,7 +44,7 @@ several tenants can safely share one subscription-backed agent runtime.
 ## Quick start (Docker)
 
 ```bash
-git clone <your-repo-url> aegis && cd aegis
+git clone https://github.com/dhpradeep/aegis.git && cd aegis
 cp .env.example .env          # then edit ADMIN_PASSWORD and SESSION_SECRET
 docker compose up -d --build
 ```
@@ -67,7 +67,7 @@ rebuilds. Then mint an API key under **Access → API Keys** and you're ready.
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone <your-repo-url> aegis && cd aegis
+git clone https://github.com/dhpradeep/aegis.git && cd aegis
 uv sync
 cp .env.example .env          # edit as needed
 
@@ -121,6 +121,33 @@ curl -s $AEGIS/v1/chat/completions -H "Authorization: Bearer $KEY" \
   -H 'Content-Type: application/json' \
   -d '{"model": "claude-sonnet-5", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
+
+The endpoint speaks the full OpenAI chat protocol, including **client-side
+tool calling**: requests that carry `tools` get `tool_calls` back
+(`finish_reason: "tool_calls"`), so agent CLIs execute their own tools locally
+and loop. `model: "default"` resolves to the tenant (or global) default model.
+
+**Use with opencode** (or any OpenAI-compatible CLI agent) — point a provider
+at Aegis in `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "provider": {
+    "aegis": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Aegis",
+      "options": {
+        "baseURL": "http://localhost:8000/v1",
+        "apiKey": "cak_..."
+      },
+      "models": { "default": { "name": "Aegis default" } }
+    }
+  }
+}
+```
+
+Then `opencode -m aegis/default`. Any model id from `GET /v1/models` works in
+place of `default`.
 
 **Usage — per-tenant tokens and your live Claude plan quota:**
 

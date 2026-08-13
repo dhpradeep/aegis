@@ -5,6 +5,14 @@
   <h1>Completions</h1>
   <div class="sub">Stored record of every stateless <code>/v1/chat/completions</code> call.</div>
 </div>
+<form method="get" class="table-filters">
+  <select name="tenant" data-searchable data-placeholder="All tenants" onchange="this.form.submit()">
+    <option value="">All tenants</option>
+    {% for t in tenants %}
+    <option value="{{ t.id }}" {% if t.id == tenant %}selected{% endif %}>{{ t.name }} · {{ t.id }}</option>
+    {% endfor %}
+  </select>
+</form>
 <div class="table-wrap scroll">
   <table>
     <thead>
