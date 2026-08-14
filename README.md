@@ -15,6 +15,7 @@ several tenants can safely share one subscription-backed agent runtime.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)
+[![Docker Pulls](https://img.shields.io/docker/pulls/dhpradeep/aegis.svg)](https://hub.docker.com/r/dhpradeep/aegis)
 
 ![Aegis dashboard demo](docs/branding/aegis-demo.gif)
 
@@ -43,7 +44,22 @@ several tenants can safely share one subscription-backed agent runtime.
 - **Usage & billing** — per-tenant token/cost metering **plus your live Claude plan quota** (session + weekly limits).
 - **Admin dashboard** — dark/light, responsive, with setup, health, and everything above.
 
-## Quick start (Docker)
+## Quick start (Docker Hub)
+
+One command to run it:
+
+```bash
+docker run -d --name aegis -p 8000:8000 \
+  -v aegis-data:/data -v claude-config:/root/.claude \
+  -e ADMIN_PASSWORD=change-me -e SESSION_SECRET=change-me-too \
+  dhpradeep/aegis:latest
+```
+
+Dashboard: **http://localhost:8000/admin** (password: your `ADMIN_PASSWORD`).
+The two volumes keep your data and Claude login across container updates.
+Use a different host port with `-p 9000:8000`.
+
+## Quick start (build from source)
 
 ```bash
 git clone https://github.com/dhpradeep/aegis.git && cd aegis

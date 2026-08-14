@@ -69,3 +69,17 @@ not the final word.
 
 By contributing, you agree that your contributions are licensed under the
 project's [Apache 2.0 License](LICENSE).
+
+## Releasing
+
+Maintainers cut a release by pushing a semver tag:
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+The `release` workflow then runs the test suite, builds and pushes a
+multi-arch (amd64 + arm64) image to Docker Hub as
+`dhpradeep/aegis:<version>`, `<major>.<minor>`, and `latest`, and creates a
+GitHub Release with generated notes. It needs two repo secrets:
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a Docker Hub access token).
