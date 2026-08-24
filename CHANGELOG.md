@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1] - 2026-08-25
+
+### Fixed
+- Claude Code conversations are keyed by the client's own session id (`metadata.user_id`), so a full interactive chat stays in one Session; transcript-prefix matching remains the fallback for other clients.
+- Claude Code's next-prompt suggestion side requests no longer hijack or advance a session; they run as stateless completions.
+- If a client compacts or rewrites its history, the conversation resyncs into the same Session instead of spawning a new one.
+
 ## [1.2.0] - 2026-08-25
 
 ### Added
