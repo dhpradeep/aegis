@@ -1,0 +1,29 @@
+name: dockerhub-description
+
+on:
+  push:
+    branches: [main]
+    paths: [README.md, .github/workflows/dockerhub-description.yml]
+  workflow_dispatch:
+
+jobs:
+  description:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Absolutize links for Docker Hub
+        run: |
+          RAW=https://raw.githubusercontent.com/dhpradeep/aegis/main
+          GH=https://github.com/dhpradeep/aegis/blob/main
+          sed -E \
+            -e "s#(src=\")(app/|docs/)#\1$RAW/\2#g" \
+            -e "s#\]\((docs/|app/)#]($RAW/\1#g" \
+            -e "s#\]\((LICENSE|CONTRIBUTING\.md|\.env\.example)\)#]($GH/\1)#g" \
+            README.md > hub-readme.md
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: dhpradeep/aegis
+          short-description: Turn your Claude subscription into a multi-tenant agent API, with an admin dashboard.
+          readme-filepath: hub-readme.md
