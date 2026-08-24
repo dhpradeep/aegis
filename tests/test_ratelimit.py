@@ -9,6 +9,14 @@ from app.core.errors import ApiError
 from app.services.ratelimit import RunGate, check_daily_cost, check_rpm
 
 
+@pytest.fixture(autouse=True)
+async def _dispose_engine():
+    yield
+    from app.db import base
+
+    await base.engine.dispose()
+
+
 async def _setup_db(tmp_path, monkeypatch, name: str):
     monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path/name}")
     from app.core.config import get_settings

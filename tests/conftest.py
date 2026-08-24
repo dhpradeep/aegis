@@ -46,6 +46,9 @@ async def client(tmp_path, monkeypatch):
             c.app = app  # exposes the ASGI app handle, e.g. to set app.state.runtime
             yield c
 
+    # Close pooled aiosqlite connections while this test's loop is still
+    # alive; otherwise their worker threads fire "Event loop is closed".
+    await base.engine.dispose()
     get_settings.cache_clear()
 
 
