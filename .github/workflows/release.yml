@@ -49,6 +49,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - run: awk '/^## \[/{f=0} /^## \['"${GITHUB_REF_NAME#v}"'\]/{f=1} f' CHANGELOG.md > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           generate_release_notes: true
