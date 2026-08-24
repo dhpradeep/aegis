@@ -28,6 +28,7 @@ class MessagesRequest(BaseModel):
     tool_choice: dict[str, Any] | None = None
     stream: bool = False
     output_config: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class CountTokensRequest(BaseModel):

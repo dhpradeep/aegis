@@ -241,7 +241,7 @@ async def chat_completions(
     model = await effective_model(db, body.model, key.tenant_id)
     system_prompt, turns = _flatten_messages(body.messages)
     client_tools = _client_tools(body)
-    session, delta = await resolve_conversation(
+    session, delta, resync = await resolve_conversation(
         db,
         key.tenant_id,
         turns,
@@ -249,7 +249,7 @@ async def chat_completions(
         profile=client_profile(request, "openai-client"),
     )
     try:
-        resuming = session is not None and session.sdk_session_id is not None
+        resuming = session is not None and session.sdk_session_id is not None and not resync
         cfg = build_run_config(
             prompt=prompt_from_turns(delta),
             system_prompt=None if resuming else system_prompt,
@@ -257,7 +257,7 @@ async def chat_completions(
             model=model,
             effort=effective_effort(body.reasoning_effort),
             cwd=session.workspace_path if session else str(scratch_workspace()),
-            resume=session.sdk_session_id if session else None,
+            resume=session.sdk_session_id if resuming else None,
         )
         await ratelimit.run_gate.acquire()
     except Exception:

@@ -203,3 +203,70 @@ async def test_anthropic_agentic_request_routes_to_session(authed_client):
     assert len(await _sessions()) == 1
     assert runtime.cfg.resume == "c1"
     assert runtime.cfg.prompt == "Tool result [toolu_1]:\nREADME.md"
+
+
+_CC_META = {"user_id": '{"device_id":"dev1","account_uuid":"","session_id":"9d6ada1c-59b2-41e6-8ef2-0e00612752f2"}'}
+
+
+def _cc_body(messages: list[dict]) -> dict:
+    return {
+        "model": "sonnet",
+        "max_tokens": 100,
+        "system": "You are Claude Code.",
+        "messages": messages,
+        "tools": [_BASH_ANT],
+        "metadata": _CC_META,
+    }
+
+
+@pytest.mark.anyio
+async def test_suggestion_mode_request_never_touches_session(authed_client):
+    authed_client.app.state.runtime = _RecordingRuntime(_events())
+    history = [
+        {"role": "user", "content": "hi there"},
+        {"role": "assistant", "content": [{"type": "text", "text": "Hello"}]},
+    ]
+
+    r = await authed_client.client.post("/v1/messages", json=_cc_body(history[:1]), headers=authed_client.headers)
+    assert r.status_code == 200
+    (session,) = await _sessions()
+    assert session.conv_key == "cc:9d6ada1c-59b2-41e6-8ef2-0e00612752f2"
+    turns_before = session.conv_turns
+
+    aux = history + [{"role": "user", "content": "[SUGGESTION MODE: Suggest what the user might type next.]"}]
+    r = await authed_client.client.post("/v1/messages", json=_cc_body(aux), headers=authed_client.headers)
+    assert r.status_code == 200
+    (session,) = await _sessions()
+    assert session.conv_turns == turns_before
+    assert await _count(CompletionLog) == 1
+
+    runtime = _RecordingRuntime(_events())
+    authed_client.app.state.runtime = runtime
+    real = history + [{"role": "user", "content": "do you know about me?"}]
+    r = await authed_client.client.post("/v1/messages", json=_cc_body(real), headers=authed_client.headers)
+    assert r.status_code == 200
+    assert len(await _sessions()) == 1
+    assert runtime.cfg.resume == "c1"
+    assert runtime.cfg.prompt == "User: do you know about me?"
+
+
+@pytest.mark.anyio
+async def test_keyed_conversation_resyncs_on_history_rewrite(authed_client):
+    authed_client.app.state.runtime = _RecordingRuntime(_events())
+    r = await authed_client.client.post(
+        "/v1/messages", json=_cc_body([{"role": "user", "content": "first"}]), headers=authed_client.headers
+    )
+    assert r.status_code == 200
+
+    runtime = _RecordingRuntime(_events())
+    authed_client.app.state.runtime = runtime
+    rewritten = [
+        {"role": "user", "content": "compacted summary of earlier chat"},
+        {"role": "user", "content": "next question"},
+    ]
+    r = await authed_client.client.post("/v1/messages", json=_cc_body(rewritten), headers=authed_client.headers)
+    assert r.status_code == 200
+    assert len(await _sessions()) == 1
+    assert runtime.cfg.resume is None
+    assert "<system_instructions>" in runtime.cfg.prompt
+    assert "User: compacted summary of earlier chat" in runtime.cfg.prompt

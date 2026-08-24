@@ -20,8 +20,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.compat.conversation import (
     Turn,
     create_cli_session,
+    delta_turns,
+    find_by_key,
     find_continuation,
     first_user_text,
+    is_aux_request,
+    prefix_matches,
     remember,
 )
 from app.core.config import get_settings
@@ -171,21 +175,38 @@ async def resolve_conversation(
     *,
     agentic: bool,
     profile: str,
-) -> tuple[Session | None, list[Turn]]:
-    """Agentic requests (client tools present) map onto a Session: an existing
-    one when the transcript prefix matches, else a new one. Returns the session
-    (marked running) and the turns to feed this run."""
-    if not agentic:
-        return None, turns
-    hit = await find_continuation(db, tenant_id, turns)
-    if hit is not None:
-        session, delta = hit
-    else:
-        session = await create_cli_session(db, tenant_id, profile, first_user_text(turns))
-        delta = turns
+    conv_key: str | None = None,
+) -> tuple[Session | None, list[Turn], bool]:
+    """Agentic requests (client tools present) map onto a Session. Lookup by
+    the client's explicit conversation id when it sends one, else by transcript
+    prefix. Returns (session, turns to feed, resync) — resync means the prefix
+    no longer matched, so the whole transcript is replayed into a fresh SDK
+    session while keeping the same Aegis session."""
+    if not agentic or is_aux_request(turns):
+        return None, turns, False
+    session: Session | None = None
+    delta = turns
+    resync = False
+    if conv_key:
+        session = await find_by_key(db, tenant_id, conv_key)
+        if session is not None:
+            if prefix_matches(session, turns):
+                delta = delta_turns(session, turns)
+            else:
+                resync = True
+    if session is None:
+        hit = await find_continuation(db, tenant_id, turns)
+        if hit is not None:
+            session, delta = hit
+    if session is None:
+        session = await create_cli_session(
+            db, tenant_id, profile, first_user_text(turns), conv_key=conv_key
+        )
+    if session.status == "running":
+        return None, turns, False
     session.status = "running"
     await db.commit()
-    return session, delta
+    return session, delta, resync
 
 
 async def release_session(db: AsyncSession, session: Session | None) -> None:

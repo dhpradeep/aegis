@@ -23,6 +23,7 @@ class Session(Base):
     title: Mapped[Optional[str]] = mapped_column(nullable=True, default=None)
     # CLI conversations routed through the compat shims: hash + length of the
     # client transcript last seen, used to recognize the next turn.
+    conv_key: Mapped[Optional[str]] = mapped_column(nullable=True, default=None, index=True)
     conv_hash: Mapped[Optional[str]] = mapped_column(nullable=True, default=None, index=True)
     conv_turns: Mapped[int] = mapped_column(default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
