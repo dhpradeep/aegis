@@ -40,7 +40,7 @@ several tenants can safely share one subscription-backed agent runtime.
 - **Sessions** — stateful chats with isolated workspaces, file upload/download, and a live streaming chat UI.
 - **Objectives** — autonomous goal-driven loops graded by a separate LLM evaluator until success or budget.
 - **MCP servers** — register HTTP/stdio MCP servers and attach them to agents.
-- **OpenAI-compatible** — drop-in `POST /v1/chat/completions` and `GET /v1/models`.
+- **OpenAI- and Anthropic-compatible** — drop-in `POST /v1/chat/completions` and `POST /v1/messages` with client-side tool calling, so opencode, Claude Code, and other agent CLIs run against it.
 - **Usage & billing** — per-tenant token/cost metering **plus your live Claude plan quota** (session + weekly limits).
 - **Admin dashboard** — dark/light, responsive, with setup, health, and everything above.
 
@@ -145,6 +145,13 @@ tool calling**: requests that carry `tools` get `tool_calls` back
 (`finish_reason: "tool_calls"`), so agent CLIs execute their own tools locally
 and loop. `model: "default"` resolves to the tenant (or global) default model.
 
+Agentic conversations (requests with `tools`) are routed into a **Session**:
+Aegis recognizes each follow-up by its transcript prefix, resumes the same
+SDK session, and sends only the new turns — so a whole opencode or Claude
+Code chat shows up as one session under **Sessions**, with per-turn events and
+usage, instead of one stateless completion per request. Plain chat requests
+(no tools) stay stateless and are listed under **Completions**.
+
 **Use with opencode** (or any OpenAI-compatible CLI agent) — point a provider
 at Aegis in `~/.config/opencode/opencode.json`:
 
@@ -166,6 +173,32 @@ at Aegis in `~/.config/opencode/opencode.json`:
 
 Then `opencode -m aegis/default`. Any model id from `GET /v1/models` works in
 place of `default`.
+
+**Use with Claude Code** — Aegis also speaks the Anthropic Messages API
+(`POST /v1/messages`), so the `claude` CLI can run against it on any machine:
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:8000
+export ANTHROPIC_AUTH_TOKEN=cak_...     # your Aegis key
+claude                                  # or: claude --model sonnet -p "hello"
+```
+
+Claude Code executes its own tools locally; only the model calls go through
+Aegis. `x-api-key` auth (`ANTHROPIC_API_KEY=cak_...`) works too.
+
+To make it stick without env vars, put the same values in a Claude Code
+settings file — per project in `.claude/settings.local.json` (recommended;
+`~/.claude/settings.json` would route *every* session through Aegis):
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:8000",
+    "ANTHROPIC_AUTH_TOKEN": "cak_...",
+    "ANTHROPIC_MODEL": "sonnet"
+  }
+}
+```
 
 **Usage — per-tenant tokens and your live Claude plan quota:**
 

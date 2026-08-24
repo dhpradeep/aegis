@@ -84,8 +84,11 @@ class ChatCompletionResponse(BaseModel):
 class ModelCard(BaseModel):
     id: str
     object: str = "model"
+    type: str = "model"
+    display_name: str | None = None
 
 
 class ModelList(BaseModel):
     object: str = "list"
     data: list[ModelCard] = Field(default_factory=list)
+    has_more: bool = False

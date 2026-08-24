@@ -1043,3 +1043,6 @@ details.raw-log > summary:hover { color: var(--text); }
   padding: 10px 12px; margin: 8px 0; overflow-x: auto; white-space: pre;
 }
 .b-user .md-code { background: rgba(255, 255, 255, .14); border-color: transparent; color: #fff; }
+.chat-turn .tool-result.wide { max-width: 100%; width: 100%; }
+.chat-turn .tool-result.wide .pre { max-height: 360px; overflow: auto; }
+.chat-turn .tool-result.wide > summary .tc-badge { margin-right: 4px; }

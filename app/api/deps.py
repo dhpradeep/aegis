@@ -25,9 +25,11 @@ async def require_key(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> ApiKey:
-    if credentials is None or not credentials.credentials:
+    token = credentials.credentials if credentials else None
+    if not token:
+        token = request.headers.get("x-api-key")
+    if not token:
         raise ApiError.auth()
-    token = credentials.credentials
     row = (
         await db.execute(
             select(ApiKey).where(

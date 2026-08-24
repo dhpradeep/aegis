@@ -21,6 +21,10 @@ class Session(Base):
     sdk_session_id: Mapped[Optional[str]] = mapped_column(nullable=True, default=None)
     status: Mapped[str] = mapped_column()  # "active" | "running" | "ended"
     title: Mapped[Optional[str]] = mapped_column(nullable=True, default=None)
+    # CLI conversations routed through the compat shims: hash + length of the
+    # client transcript last seen, used to recognize the next turn.
+    conv_hash: Mapped[Optional[str]] = mapped_column(nullable=True, default=None, index=True)
+    conv_turns: Mapped[int] = mapped_column(default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )

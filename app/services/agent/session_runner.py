@@ -134,6 +134,8 @@ async def run_session_message(
     tenant_id: str,
     api_key_id: str,
     session_id: str,
+    display_prompt: str | None = None,
+    system_prompt: str | None = None,
 ) -> AsyncIterator[dict]:
     """Drive `runtime.stream(cfg)`, persisting each event (and side effects)
     against a dedicated DB session, and re-yield the same event dicts.
@@ -157,9 +159,21 @@ async def run_session_message(
                 session_id=session_id,
                 seq=seq,
                 type="user_message",
-                payload_json=json.dumps({"type": "user_message", "text": cfg.prompt}),
+                payload_json=json.dumps(
+                    {"type": "user_message", "text": display_prompt or cfg.prompt}
+                ),
             )
         )
+        if system_prompt:
+            seq += 1
+            db.add(
+                Event(
+                    session_id=session_id,
+                    seq=seq,
+                    type="system_prompt",
+                    payload_json=json.dumps({"type": "system_prompt", "text": system_prompt}),
+                )
+            )
         await db.commit()
         try:
             async for ev in runtime.stream(cfg):

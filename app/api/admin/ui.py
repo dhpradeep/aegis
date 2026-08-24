@@ -61,7 +61,7 @@ _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 try:
     _mtimes = [
         os.path.getmtime(os.path.join(_STATIC_DIR, f))
-        for f in ("dashboard.css", "dropdown.js")
+        for f in ("dashboard.css", "dropdown.js", "md.js")
     ]
     templates.env.globals["asset_version"] = str(int(max(_mtimes)))
 except OSError:
@@ -251,6 +251,16 @@ async def keys_create(
 )
 async def keys_revoke(id: str, db: AsyncSession = Depends(get_db)):
     await admin_service.revoke_key(db, actor=ACTOR, key_id=id)
+    return RedirectResponse(url="/admin/keys", status_code=302)
+
+
+@router.post(
+    "/keys/{id}/delete",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin_cookie)],
+)
+async def keys_delete(id: str, db: AsyncSession = Depends(get_db)):
+    await admin_service.delete_key(db, actor=ACTOR, key_id=id)
     return RedirectResponse(url="/admin/keys", status_code=302)
 
 
@@ -467,7 +477,9 @@ async def session_detail_page(id: str, request: Request, db: AsyncSession = Depe
         if cur is None:
             cur = {"index": len(turns) + 1, "started_at": e.created_at, "messages": [], "metrics": None}
             turns.append(cur)
-        if etype == "thinking":
+        if etype == "system_prompt":
+            cur["system"] = payload.get("text", "")
+        elif etype == "thinking":
             if (payload.get("text") or "").strip():
                 cur["messages"].append({"kind": "thinking", "text": payload["text"]})
         elif etype == "text":

@@ -25,6 +25,12 @@
     {% for turn in turns %}
     <div class="chat-turn">
       <div class="chat-divider"><span>{{ turn.started_at }}</span></div>
+      {% if turn.system %}
+      <details class="tool-result wide">
+        <summary><span class="tc-badge">system</span> system prompt · {{ "{:,}".format(turn.system|length) }} chars</summary>
+        <div class="pre">{{ turn.system }}</div>
+      </details>
+      {% endif %}
       {% for m in turn.messages %}
         {% if m.kind == "user" %}
           <div class="crow crow-user"><div class="bubble b-user">{{ m.text }}</div></div>
@@ -65,6 +71,7 @@
     </div>
     {% endif %}
 
+    {% if session.agent_id %}
     <form id="composer" onsubmit="return sendMessage(event)">
       <div class="chat-input">
         <button type="button" class="ci-btn" id="attach-btn" onclick="document.getElementById('upload-input').click()" title="Attach a file">
@@ -81,6 +88,9 @@
     <form id="upload-form" method="post" action="/admin/sessions/{{ session.id }}/files" enctype="multipart/form-data" hidden>
       <input type="file" name="file" id="upload-input" onchange="onAttach(this);">
     </form>
+    {% else %}
+    <div class="ci-status">Driven by {{ session.profile }} — send messages from the CLI.</div>
+    {% endif %}
   </div>
   </div>
 

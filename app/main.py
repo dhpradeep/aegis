@@ -130,10 +130,12 @@ def create_app() -> FastAPI:
     from app.api.admin.api import router as admin_router
     from app.api.admin.ui import install_admin_ui_handlers
     from app.api.admin.ui import router as admin_ui_router
+    from app.api.compat.anthropic import router as anthropic_compat_router
     from app.api.compat.openai import router as openai_compat_router
     from app.api.v1.router import v1_router
     app.include_router(v1_router)
     app.include_router(openai_compat_router)
+    app.include_router(anthropic_compat_router)
     app.include_router(admin_router)
     # The admin dashboard is server-rendered HTML, not a JSON API — keep it out
     # of the OpenAPI schema / Swagger docs.
