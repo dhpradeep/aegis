@@ -23,7 +23,7 @@ class Objective(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
-    api_key_id: Mapped[str] = mapped_column(ForeignKey("api_keys.id"))
+    api_key_id: Mapped[Optional[str]] = mapped_column(ForeignKey("api_keys.id"), nullable=True)
     agent_id: Mapped[str] = mapped_column(ForeignKey("agents.id"))
     goal: Mapped[str] = mapped_column()
     rubric: Mapped[str] = mapped_column()

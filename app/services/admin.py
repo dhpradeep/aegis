@@ -2,12 +2,24 @@ import json
 import logging
 from secrets import token_hex
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApiError
 from app.core.security import generate_api_key
-from app.db.models import ApiKey, AuditLog, BillingConfig, Tenant, WebhookConfig
+from app.db.models import (
+    ApiKey,
+    AuditLog,
+    BillingConfig,
+    CompletionLog,
+    Objective,
+    RateBucket,
+    Tenant,
+    Usage,
+    WebhookConfig,
+)
 from app.db.models._base import _utcnow
 
 logger = logging.getLogger("app.admin")
@@ -121,6 +133,22 @@ async def revoke_key(db: AsyncSession, *, actor: str, key_id: str) -> ApiKey:
     await db.commit()
     await db.refresh(key)
     return key
+
+
+async def delete_key(db: AsyncSession, *, actor: str, key_id: str) -> None:
+    """Permanently delete a revoked key. Usage, completion, and objective rows
+    keep their tenant attribution but lose the key link."""
+    key = await _get_key_or_404(db, key_id)
+    if key.revoked_at is None:
+        raise ApiError.invalid("Revoke the key before deleting it")
+    for model in (Usage, CompletionLog, Objective):
+        await db.execute(
+            sa_update(model).where(model.api_key_id == key_id).values(api_key_id=None)
+        )
+    await db.execute(sa_delete(RateBucket).where(RateBucket.api_key_id == key_id))
+    _audit(db, actor=actor, action="key.delete", detail={"key_id": key_id})
+    await db.delete(key)
+    await db.commit()
 
 
 class _Unset:

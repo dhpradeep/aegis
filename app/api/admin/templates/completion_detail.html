@@ -9,7 +9,7 @@
 <div class="card">
   <dl class="kv">
     <dt>Tenant</dt><dd class="mono">{{ row.tenant_id }}</dd>
-    <dt>API key</dt><dd class="mono">{{ row.api_key_id }}</dd>
+    <dt>API key</dt><dd class="mono">{{ row.api_key_id or "—" }}</dd>
     <dt>Model</dt><dd>{{ row.model }}</dd>
     <dt>Mode</dt><dd>{% if row.streamed %}<span class="badge badge-accent plain">stream</span>{% else %}<span class="badge badge-muted plain">blocking</span>{% endif %}</dd>
     <dt>Tokens</dt><dd>{{ row.input_tokens }} in · {{ row.output_tokens }} out</dd>

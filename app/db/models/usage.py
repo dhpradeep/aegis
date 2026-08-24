@@ -13,7 +13,7 @@ class Usage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
-    api_key_id: Mapped[str] = mapped_column(ForeignKey("api_keys.id"))
+    api_key_id: Mapped[Optional[str]] = mapped_column(ForeignKey("api_keys.id"), nullable=True)
     # Nullable: a later OpenAI-compatibility task creates Usage rows with no session.
     session_id: Mapped[Optional[str]] = mapped_column(
         ForeignKey("sessions.id"), nullable=True, default=None

@@ -107,6 +107,16 @@ async def revoke_key(
     return KeySummary.model_validate(revoked, from_attributes=True)
 
 
+@router.delete("/keys/{id}")
+async def delete_key(
+    id: str,
+    key: ApiKey = Depends(require_admin_key),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    await admin_service.delete_key(db, actor=key.id, key_id=id)
+    return {"deleted": True}
+
+
 @router.patch("/keys/{id}", response_model=KeySummary)
 async def patch_key(
     id: str,

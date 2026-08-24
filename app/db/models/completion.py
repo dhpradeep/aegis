@@ -21,7 +21,7 @@ class CompletionLog(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
-    api_key_id: Mapped[str] = mapped_column(ForeignKey("api_keys.id"))
+    api_key_id: Mapped[Optional[str]] = mapped_column(ForeignKey("api_keys.id"), nullable=True)
     model: Mapped[str] = mapped_column()
     streamed: Mapped[bool] = mapped_column(default=False)
     # JSON-encoded request messages (the OpenAI `messages` array).

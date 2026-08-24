@@ -598,3 +598,50 @@ async def test_setup_on_system_page_and_status(client, monkeypatch):
     r2 = await client.get("/admin/onboarding/status")
     assert r2.status_code == 200
     assert r2.json()["ready"] is True
+
+
+@pytest.mark.anyio
+async def test_delete_key_requires_revoke_and_detaches_usage(admin_client):
+    from sqlalchemy import select
+
+    from app.db.base import SessionLocal
+    from app.db.models import Usage
+
+    c, h = admin_client["client"], admin_client["headers"]
+    tenant_id = (await c.post("/admin/api/tenants", json={"name": "Del Co"}, headers=h)).json()["id"]
+    created = (
+        await c.post("/admin/api/keys", json={"tenant_id": tenant_id, "name": "k"}, headers=h)
+    ).json()
+    key_id = created["id"]
+
+    async with SessionLocal() as db:
+        db.add(
+            Usage(
+                tenant_id=tenant_id,
+                api_key_id=key_id,
+                input_tokens=1,
+                output_tokens=1,
+                cache_read_tokens=0,
+                cost_usd=0.0,
+                duration_ms=0,
+                num_turns=1,
+            )
+        )
+        await db.commit()
+
+    r = await c.delete(f"/admin/api/keys/{key_id}", headers=h)
+    assert r.status_code == 422
+
+    assert (await c.post(f"/admin/api/keys/{key_id}/revoke", headers=h)).status_code == 200
+    r = await c.delete(f"/admin/api/keys/{key_id}", headers=h)
+    assert r.status_code == 200
+    assert r.json() == {"deleted": True}
+
+    r = await c.delete(f"/admin/api/keys/{key_id}", headers=h)
+    assert r.status_code == 404
+    ids = {k["id"] for k in (await c.get("/admin/api/keys", headers=h)).json()}
+    assert key_id not in ids
+
+    async with SessionLocal() as db:
+        rows = (await db.execute(select(Usage).where(Usage.tenant_id == tenant_id))).scalars().all()
+    assert len(rows) == 1 and rows[0].api_key_id is None

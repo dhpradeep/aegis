@@ -108,12 +108,17 @@ function copyKey() {
         <td>{{ k.created_at }}</td>
         <td>
           <div class="actions">
+            {% if k.revoked_at %}
+            <form class="inline" method="post" action="/admin/keys/{{ k.id }}/delete"
+                  onsubmit="return confirm('Delete this revoked key permanently? Its usage history stays attributed to the tenant.');">
+              <button class="danger sm" type="submit">Delete</button>
+            </form>
+            {% else %}
             <form class="inline" method="post" action="/admin/keys/{{ k.id }}/limits">
               <input type="number" name="rpm" value="{{ k.rpm if k.rpm is not none else '' }}" placeholder="∞" aria-label="RPM (blank = unlimited)">
               <input type="number" step="0.01" name="daily_cost_usd" value="{{ k.daily_cost_usd if k.daily_cost_usd is not none else '' }}" placeholder="∞" aria-label="Daily cost (blank = unlimited)">
               <button class="secondary sm" type="submit">Save</button>
             </form>
-            {% if not k.revoked_at %}
             <form class="inline" method="post" action="/admin/keys/{{ k.id }}/revoke"
                   onsubmit="return confirm('Revoke this key? It will stop working immediately and cannot be un-revoked.');">
               <button class="danger sm" type="submit">Revoke</button>
