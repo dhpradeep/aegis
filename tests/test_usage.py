@@ -329,3 +329,44 @@ async def test_get_models_falls_back_when_live_returns_none(monkeypatch):
     get_settings.cache_clear()
     models_module._CACHE["models"] = None
     models_module._CACHE["expires"] = 0.0
+
+
+@pytest.mark.anyio
+async def test_usage_breaks_down_by_key(authed_client):
+    other_key = await _seed_key(authed_client.tenant_id, "k_other")
+    await _seed_usage(authed_client.tenant_id, authed_client.key_id, None, cost_usd=1.0, input_tokens=10, output_tokens=5)
+    await _seed_usage(authed_client.tenant_id, "k_other", None, cost_usd=2.0, input_tokens=20, output_tokens=7)
+    await _seed_usage(authed_client.tenant_id, "k_other", None, cost_usd=0.5, input_tokens=1, output_tokens=1)
+
+    r = await authed_client.client.get("/v1/usage", headers=authed_client.headers)
+
+    assert r.status_code == 200
+    by_key = {row["api_key_id"]: row for row in r.json()["by_key"]}
+    assert by_key[authed_client.key_id]["runs"] == 1
+    assert by_key["k_other"]["runs"] == 2
+    assert by_key["k_other"]["cost_usd"] == 2.5
+    assert by_key["k_other"]["input_tokens"] == 21
+    assert by_key["k_other"]["name"] == "k_other"
+    assert by_key["k_other"]["prefix"] == other_key[:12]
+
+
+@pytest.mark.anyio
+async def test_admin_usage_page_lists_keys(client, authed_client):
+    from app.services.billing import all_key_usage
+    from app.db.base import SessionLocal
+
+    await _seed_usage(authed_client.tenant_id, authed_client.key_id, None, cost_usd=1.5, input_tokens=3, output_tokens=4)
+
+    async with SessionLocal() as db:
+        rows = await all_key_usage(db)
+    (row,) = [r for r in rows if r["api_key_id"] == authed_client.key_id]
+    assert row["tenant_id"] == authed_client.tenant_id
+    assert row["key_name"] == "k_test"
+    assert row["runs"] == 1 and row["cost_usd"] == 1.5 and row["revoked"] is False
+
+    r = await client.post("/admin/login", data={"password": "admin"})
+    assert r.status_code == 302
+    r = await client.get("/admin/usage")
+    assert r.status_code == 200
+    assert "Token usage by API key" in r.text
+    assert row["key_prefix"] in r.text

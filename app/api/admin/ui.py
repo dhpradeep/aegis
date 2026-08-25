@@ -41,7 +41,7 @@ from app.services import login_throttle
 from app.services import mcp as mcp_service
 from app.services import ratelimit
 from app.services.agent.session_runner import build_run_config, run_session_message
-from app.services.billing import all_tenant_usage
+from app.services.billing import all_key_usage, all_tenant_usage
 from app.services.sessions import create_session_record, delete_session
 from app.services.workspaces import enforce_quota, list_files, resolve_in_workspace
 
@@ -385,8 +385,9 @@ async def billing_submit(
 @router.get("/usage", response_class=HTMLResponse, dependencies=[Depends(require_admin_cookie)])
 async def usage_page(request: Request, db: AsyncSession = Depends(get_db)):
     rows = await all_tenant_usage(db)
+    key_rows = await all_key_usage(db)
     plan = await claude_usage.get_plan_usage()
-    return templates.TemplateResponse(request, "usage.html", {"rows": rows, "plan": plan})
+    return templates.TemplateResponse(request, "usage.html", {"rows": rows, "key_rows": key_rows, "plan": plan})
 
 
 # --- sessions -----------------------------------------------------------

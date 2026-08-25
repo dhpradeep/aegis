@@ -67,6 +67,38 @@
   </table>
 </div>
 
+<div class="section-title">Token usage by API key</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Key</th><th>Tenant</th><th>Runs</th><th>Input tok</th><th>Output tok</th>
+        <th>Raw cost $</th><th>Priced cost $</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in key_rows %}
+      <tr>
+        <td>
+          {% if row.api_key_id %}
+          <span class="mono">{{ row.key_prefix }}…</span> {{ row.key_name }}
+          {% if row.revoked %}<span class="badge badge-danger plain">revoked</span>{% endif %}
+          {% else %}<span class="muted">deleted key</span>{% endif %}
+        </td>
+        <td class="mono">{{ row.tenant_id }}</td>
+        <td>{{ row.runs }}</td>
+        <td>{{ "{:,}".format(row.input_tokens) }}</td>
+        <td>{{ "{:,}".format(row.output_tokens) }}</td>
+        <td>{{ "%.4f"|format(row.cost_usd) }}</td>
+        <td>{{ "%.4f"|format(row.priced_cost_usd) if row.priced_cost_usd is not none else "—" }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="7">No usage recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 <script>
 // Render reset timestamps in the viewer's local time.
 document.querySelectorAll(".ubar-sub[data-reset]").forEach(function (el) {

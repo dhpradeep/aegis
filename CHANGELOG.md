@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Usage broken down by API key: a second table on the admin Usage page and a `by_key` list in `GET /v1/usage`.
+
 ## [1.2.1] - 2026-08-25
 
 ### Fixed
