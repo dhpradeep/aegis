@@ -1,0 +1,105 @@
+{% extends "portal_base.html" %}
+{% block title %}{{ session.title or "Chat" }}{% endblock %}
+{% block content %}
+<div class="chat-app">
+  <div class="chat-app-head">
+    <div class="ca-id">
+      <button type="button" class="pmenu inline" aria-label="Show threads" onclick="document.getElementById('pshell').classList.add('side-open')">☰</button>
+      <span class="ca-agent">{{ session.title or session.profile }}</span>
+      {% if session.status == "running" %}<span class="badge badge-warn">running</span>
+      {% elif session.status == "active" %}<span class="badge badge-ok">active</span>
+      {% else %}<span class="badge badge-muted">{{ session.status }}</span>{% endif %}
+      <span class="ca-sid mono">{{ settings.model or default_model }}{% if settings.effort %} · {{ settings.effort }}{% endif %}</span>
+    </div>
+    <button type="button" class="info-toggle" title="Chat details"
+            onclick="document.querySelector('.chat-app').classList.toggle('show-info')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      Info
+    </button>
+  </div>
+
+  <div class="chat-body">
+  <div class="chat-main">
+  <div class="chat-scroll" id="chat" data-sid="{{ session.id }}" data-base="/chat/s/{{ session.id }}" data-events="{{ events|length }}" data-status="{{ session.status }}">
+    {% for turn in turns %}
+    <div class="chat-turn">
+      <div class="chat-divider"><span>{{ turn.started_at }}</span></div>
+      {% for m in turn.messages %}
+        {% if m.kind == "user" %}
+          <div class="crow crow-user"><div class="bubble b-user">{{ m.text }}</div></div>
+        {% elif m.kind == "text" %}
+          <div class="crow crow-ai"><span class="c-avatar"></span><div class="bubble b-ai md">{{ m.text }}</div></div>
+        {% elif m.kind == "thinking" %}
+          <div class="crow crow-ai"><span class="c-avatar ghost"></span><div class="bubble b-think">{{ m.text }}</div></div>
+        {% elif m.kind == "tool_use" %}
+          <div class="crow crow-ai"><span class="c-avatar ghost"></span><div class="tool-call"><span class="tc-badge">tool</span> <span class="mono">{{ m.name }}</span> <span class="tc-args">{{ m.input }}</span></div></div>
+        {% elif m.kind == "tool_result" %}
+          <div class="crow crow-ai"><span class="c-avatar ghost"></span><details class="tool-result {{ 'err' if m.is_error }}"><summary>{{ 'error' if m.is_error else 'result' }}</summary><div class="pre">{{ m.content }}</div></details></div>
+        {% elif m.kind == "error" %}
+          <div class="crow crow-ai"><span class="c-avatar ghost"></span><div class="bubble b-error">{{ m.text }}</div></div>
+        {% endif %}
+      {% endfor %}
+      {% if turn.metrics %}
+        <div class="crow crow-ai"><span class="c-avatar ghost"></span><div class="chat-metrics">{{ turn.metrics.input_tokens }} in · {{ turn.metrics.output_tokens }} out · ${{ "%.4f"|format(turn.metrics.cost_usd) }} · {{ turn.metrics.duration_ms }} ms</div></div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="chat-empty">Say hello — this chat remembers everything you discuss here. Web search is on.</div>
+    {% endfor %}
+  </div>
+
+  <div class="chat-composer">
+    <form id="composer" onsubmit="return sendMessage(event)">
+      <div class="chat-input">
+        <textarea id="prompt" rows="1" placeholder="Message…  (Enter to send · Shift+Enter for a new line)"></textarea>
+        <button type="submit" class="ci-send" id="send-btn" title="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div id="send-status" class="ci-status"></div>
+    </form>
+
+  </div>
+  </div>
+
+  <div class="ci-backdrop" onclick="document.querySelector('.chat-app').classList.remove('show-info')"></div>
+  <aside class="chat-info">
+    <div class="ci-drawer-head">
+      <span class="ci-drawer-title">Chat details</span>
+      <button type="button" class="ci-close" title="Close" onclick="document.querySelector('.chat-app').classList.remove('show-info')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="ci-section">
+      <dl class="kv">
+        <dt>Agent</dt><dd>{{ session.profile }}</dd>
+        <dt>Created</dt><dd>{{ session.created_at }}</dd>
+        <dt>Chat ID</dt><dd class="mono ci-ws">{{ session.id }}</dd>
+      </dl>
+      <form class="ci-delete" method="post" action="/chat/s/{{ session.id }}/delete"
+            onsubmit="return confirm('Delete this chat? It is removed permanently.');">
+        <button class="danger sm" type="submit">Delete chat</button>
+      </form>
+    </div>
+    <div class="ci-section">
+      <div class="ci-title">Settings</div>
+      <form method="post" action="/chat/s/{{ session.id }}/settings" class="ci-settings">
+        <label for="s-model">Model</label>
+        <select id="s-model" name="model" data-searchable>
+          <option value="" {% if not settings.model %}selected{% endif %}>Default ({{ default_model }})</option>
+          {% for m in models %}<option value="{{ m.id }}" {% if settings.model == m.id %}selected{% endif %}>{{ m.label }}</option>{% endfor %}
+        </select>
+        <label for="s-effort">Effort</label>
+        <select id="s-effort" name="effort">
+          <option value="" {% if not settings.effort %}selected{% endif %}>Default</option>
+          {% for e in efforts %}<option value="{{ e }}" {% if settings.effort == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+        </select>
+        <button class="secondary sm" type="submit">Save</button>
+      </form>
+      <p class="muted ci-note">Applies from the next message.</p>
+    </div>
+  </aside>
+  </div>
+</div>
+<script src="/admin/static/chat.js?v={{ asset_version }}"></script>
+{% endblock %}

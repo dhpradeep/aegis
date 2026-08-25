@@ -93,7 +93,7 @@ function copyKey() {
       {% for k in keys %}
       <tr>
         <td class="mono">{{ k.prefix }}…</td>
-        <td class="mono">{{ k.tenant_id }}</td>
+        <td title="{{ k.tenant_id }}">{{ tenant_names.get(k.tenant_id, k.tenant_id) }}</td>
         <td>{{ k.name }}</td>
         <td>{% if k.rpm is not none %}{{ k.rpm }}{% else %}<span class="inf">∞</span>{% endif %}</td>
         <td>{% if k.daily_cost_usd is not none %}{{ "%.2f"|format(k.daily_cost_usd) }}{% else %}<span class="inf">∞</span>{% endif %}</td>

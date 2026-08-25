@@ -1,0 +1,49 @@
+{% extends "portal_base.html" %}
+{% block title %}New chat{% endblock %}
+{% block content %}
+<div class="pnew-wrap">
+  <button type="button" class="pmenu" aria-label="Show threads" onclick="document.getElementById('pshell').classList.add('side-open')">☰</button>
+  <div class="pnew-card">
+    <span class="brand-mark pnew-mark"></span>
+    <h1>Start a new chat</h1>
+    <p class="sub">Each chat keeps its own memory. Web search is on.</p>
+    {% if agents %}
+    <form method="post" action="/chat/sessions" class="pnew-form">
+      {% if agents|length == 1 %}
+      <input type="hidden" name="agent_id" value="{{ agents[0].id }}">
+      {% else %}
+      <div>
+        <label for="agent_id">Assistant</label>
+        <select id="agent_id" name="agent_id" required>
+          {% for a in agents %}<option value="{{ a.id }}">{{ a.name }}{% if a.description %} — {{ a.description }}{% endif %}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="pnew-row">
+        <div>
+          <label for="model">Model</label>
+          <select id="model" name="model" data-searchable>
+            <option value="">Default ({{ default_model }})</option>
+            {% for m in models %}<option value="{{ m.id }}">{{ m.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="effort">Effort</label>
+          <select id="effort" name="effort">
+            <option value="">Default</option>
+            {% for e in efforts %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="title">Title <span class="muted">(optional — set from your first message)</span></label>
+        <input id="title" name="title" type="text" placeholder="What is this chat about?">
+      </div>
+      <button class="btn" type="submit">Start chat</button>
+    </form>
+    {% else %}
+    <p class="muted">No assistants are available yet — ask your admin to enable one for the portal.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

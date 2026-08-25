@@ -28,6 +28,7 @@ async def create_session_record(
     agent_id: str,
     title: str | None = None,
     allow_admin_only: bool = False,
+    origin: str = "api",
 ) -> Session:
     """Provision the workspace and persist a new `active` agent-backed session
     for `tenant_id`. Returns the created row.
@@ -56,6 +57,7 @@ async def create_session_record(
         workspace_path=str(workspace),
         status="active",
         title=title,
+        origin=origin,
     )
     db.add(session)
     await db.commit()

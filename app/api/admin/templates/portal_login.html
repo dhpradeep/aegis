@@ -1,0 +1,18 @@
+{% extends "portal_base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="portal-login">
+  <div class="card portal-login-card">
+    <div class="portal-login-head">
+      <span class="brand-mark"></span>
+      <div><h1>Aegis Chat</h1><div class="sub">Sign in with your API key</div></div>
+    </div>
+    {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+    <form method="post" action="/chat/login">
+      <label for="api_key">API key</label>
+      <input id="api_key" name="api_key" type="password" placeholder="cak_…" autocomplete="off" required autofocus>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

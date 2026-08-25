@@ -119,6 +119,7 @@ async def create_cli_session(
         status="active",
         title=(title[:_TITLE_MAX] or None),
         conv_key=conv_key,
+        origin="cli",
     )
     db.add(session)
     await db.commit()

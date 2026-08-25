@@ -1,0 +1,29 @@
+{% extends "portal_base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<div class="landing">
+  <div class="landing-head">
+    <span class="brand-mark pnew-mark"></span>
+    <h1>Aegis</h1>
+    <p class="sub">Your Claude subscription as a multi-tenant agent API — with a dashboard.</p>
+  </div>
+  <div class="landing-cards">
+    <a class="card landing-card" href="/chat">
+      <div class="landing-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h2>Chat</h2>
+      <p>Talk to Claude with web search. Sign in with your API key.</p>
+      <span class="landing-cta">Open chat →</span>
+    </a>
+    <a class="card landing-card" href="/admin">
+      <div class="landing-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/></svg>
+      </div>
+      <h2>Admin console</h2>
+      <p>Tenants, API keys, agents, sessions, usage and setup.</p>
+      <span class="landing-cta">Open admin →</span>
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "portal_base.html" %}
+{% block title %}Usage{% endblock %}
+{% block content %}
+<div class="page-head">
+  <button type="button" class="pmenu inline" aria-label="Show threads" onclick="document.getElementById('pshell').classList.add('side-open')">☰</button>
+  <h1>Usage</h1>
+  <div class="sub">Metered from your chats and API calls.</div>
+</div>
+<div class="card">
+  <dl class="kv">
+    <dt>Runs</dt><dd>{{ summary.runs }}</dd>
+    <dt>Input tokens</dt><dd>{{ "{:,}".format(summary.input_tokens) }}</dd>
+    <dt>Output tokens</dt><dd>{{ "{:,}".format(summary.output_tokens) }}</dd>
+    <dt>Cost</dt><dd>${{ "%.4f"|format(summary.total_cost_usd) }}</dd>
+  </dl>
+</div>
+<div class="section-title">By API key</div>
+<div class="table-wrap scroll">
+  <table>
+    <thead><tr><th>Key</th><th>Runs</th><th>Input tok</th><th>Output tok</th><th>Cost $</th></tr></thead>
+    <tbody>
+      {% for row in summary.by_key %}
+      <tr {% if row.api_key_id == portal_key.id %}class="row-hl"{% endif %}>
+        <td>{% if row.prefix %}<span class="mono">{{ row.prefix }}…</span> {{ row.name }}{% else %}<span class="muted">deleted key</span>{% endif %}{% if row.api_key_id == portal_key.id %} <span class="badge badge-accent plain">you</span>{% endif %}</td>
+        <td>{{ row.runs }}</td>
+        <td>{{ "{:,}".format(row.input_tokens) }}</td>
+        <td>{{ "{:,}".format(row.output_tokens) }}</td>
+        <td>{{ "%.4f"|format(row.cost_usd) }}</td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="5">No usage yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

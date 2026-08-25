@@ -53,7 +53,7 @@
     <tbody>
       {% for row in rows %}
       <tr>
-        <td class="mono">{{ row.tenant_id }}</td>
+        <td title="{{ row.tenant_id }}">{{ tenant_names.get(row.tenant_id, row.tenant_id) }}</td>
         <td>{{ row.runs }}</td>
         <td>{{ "{:,}".format(row.input_tokens) }}</td>
         <td>{{ "{:,}".format(row.output_tokens) }}</td>
@@ -85,7 +85,7 @@
           {% if row.revoked %}<span class="badge badge-danger plain">revoked</span>{% endif %}
           {% else %}<span class="muted">deleted key</span>{% endif %}
         </td>
-        <td class="mono">{{ row.tenant_id }}</td>
+        <td title="{{ row.tenant_id }}">{{ tenant_names.get(row.tenant_id, row.tenant_id) }}</td>
         <td>{{ row.runs }}</td>
         <td>{{ "{:,}".format(row.input_tokens) }}</td>
         <td>{{ "{:,}".format(row.output_tokens) }}</td>

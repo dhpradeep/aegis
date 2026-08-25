@@ -64,9 +64,10 @@ async def lifespan(app: FastAPI):
     else:
         await init_db()
     init_run_gate(get_settings().max_concurrent_runs)
-    from app.services.agents import seed_default_agent
+    from app.services.agents import seed_chat_agent, seed_default_agent
     async with SessionLocal() as _db:
         await seed_default_agent(_db)
+        await seed_chat_agent(_db)
     app.state.runtime = AgentRuntime()
 
     if os.environ.get("BOOTSTRAP_ADMIN") == "1":
@@ -130,6 +131,8 @@ def create_app() -> FastAPI:
     from app.api.admin.api import router as admin_router
     from app.api.admin.ui import install_admin_ui_handlers
     from app.api.admin.ui import router as admin_ui_router
+    from app.api.portal.ui import install_portal_handlers
+    from app.api.portal.ui import router as portal_router
     from app.api.compat.anthropic import router as anthropic_compat_router
     from app.api.compat.openai import router as openai_compat_router
     from app.api.v1.router import v1_router
@@ -141,6 +144,17 @@ def create_app() -> FastAPI:
     # of the OpenAPI schema / Swagger docs.
     app.include_router(admin_ui_router, include_in_schema=False)
     install_admin_ui_handlers(app)
+    app.include_router(portal_router, include_in_schema=False)
+    install_portal_handlers(app)
+
+    from fastapi import Request
+    from fastapi.responses import HTMLResponse
+
+    from app.api.admin.ui import templates as _templates
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def landing(request: Request):
+        return _templates.TemplateResponse(request, "landing.html", {"portal_key": None})
 
     @app.get("/healthz")
     async def healthz():

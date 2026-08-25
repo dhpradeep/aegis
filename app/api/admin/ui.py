@@ -53,6 +53,7 @@ AGENT_PERMISSION_MODES = ["default", "acceptEdits"]
 router = APIRouter(prefix="/admin", tags=["admin-ui"])
 templates = Jinja2Templates(directory="app/api/admin/templates")
 templates.env.filters["from_json"] = json.loads
+templates.env.globals["tenant_names"] = {}
 
 # Cache-busting version for static assets: the newest mtime across the CSS and
 # JS bundles, so any edit changes the ?v= query and browsers re-fetch instead of
@@ -61,7 +62,7 @@ _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 try:
     _mtimes = [
         os.path.getmtime(os.path.join(_STATIC_DIR, f))
-        for f in ("dashboard.css", "dropdown.js", "md.js")
+        for f in ("dashboard.css", "dropdown.js", "md.js", "chat.js")
     ]
     templates.env.globals["asset_version"] = str(int(max(_mtimes)))
 except OSError:
@@ -199,8 +200,14 @@ async def keys_page(request: Request, db: AsyncSession = Depends(get_db)):
     keys = await admin_service.list_keys(db)
     tenants = (await db.execute(select(Tenant))).scalars().all()
     return templates.TemplateResponse(
-        request, "keys.html", {"keys": keys, "tenants": tenants, "error": None}
+        request,
+        "keys.html",
+        {"keys": keys, "tenants": tenants, "tenant_names": _names(tenants), "error": None},
     )
+
+
+def _names(tenants) -> dict[str, str]:
+    return {t.id: t.name for t in tenants}
 
 
 def _blank_to_none_int(v: str) -> int | None:
@@ -240,7 +247,7 @@ async def keys_create(
     return templates.TemplateResponse(
         request,
         "keys.html",
-        {"keys": keys, "tenants": tenants, "error": None, "new_key": full_key},
+        {"keys": keys, "tenants": tenants, "tenant_names": _names(tenants), "error": None, "new_key": full_key},
     )
 
 
@@ -386,8 +393,11 @@ async def billing_submit(
 async def usage_page(request: Request, db: AsyncSession = Depends(get_db)):
     rows = await all_tenant_usage(db)
     key_rows = await all_key_usage(db)
+    tenants = (await db.execute(select(Tenant))).scalars().all()
     plan = await claude_usage.get_plan_usage()
-    return templates.TemplateResponse(request, "usage.html", {"rows": rows, "key_rows": key_rows, "plan": plan})
+    return templates.TemplateResponse(request, "usage.html",
+        {"rows": rows, "key_rows": key_rows, "tenant_names": _names(tenants), "plan": plan},
+    )
 
 
 # --- sessions -----------------------------------------------------------
@@ -396,13 +406,16 @@ async def usage_page(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get(
     "/sessions", response_class=HTMLResponse, dependencies=[Depends(require_admin_cookie)]
 )
-async def sessions_page(request: Request, db: AsyncSession = Depends(get_db)):
-    sessions = (
-        (await db.execute(select(SessionModel).order_by(SessionModel.created_at.desc()).limit(100)))
-        .scalars()
-        .all()
-    )
-    tenants = (await db.execute(select(Tenant))).scalars().all()
+async def sessions_page(
+    request: Request, tenant: str = "", origin: str = "", db: AsyncSession = Depends(get_db)
+):
+    q = select(SessionModel).order_by(SessionModel.created_at.desc()).limit(100)
+    if tenant:
+        q = q.where(SessionModel.tenant_id == tenant)
+    if origin:
+        q = q.where(SessionModel.origin == origin)
+    sessions = (await db.execute(q)).scalars().all()
+    tenants = (await db.execute(select(Tenant).order_by(Tenant.name))).scalars().all()
     agents = await agents_service.list_agents(db)
     return templates.TemplateResponse(
         request,
@@ -410,6 +423,9 @@ async def sessions_page(request: Request, db: AsyncSession = Depends(get_db)):
         {
             "sessions": sessions,
             "tenants": tenants,
+            "tenant_names": _names(tenants),
+            "tenant": tenant,
+            "origin": origin,
             "agents": [{"id": a.id, "name": a.name} for a in agents],
         },
     )
@@ -434,23 +450,7 @@ async def sessions_create(
     return RedirectResponse(url=f"/admin/sessions/{session.id}", status_code=302)
 
 
-@router.get(
-    "/sessions/{id}",
-    response_class=HTMLResponse,
-    dependencies=[Depends(require_admin_cookie)],
-)
-async def session_detail_page(id: str, request: Request, db: AsyncSession = Depends(get_db)):
-    session = await db.get(SessionModel, id)
-    events = (
-        (
-            await db.execute(
-                select(Event).where(Event.session_id == id).order_by(Event.seq.asc())
-            )
-        )
-        .scalars()
-        .all()
-    )
-
+def build_turns(events: list[Event]) -> list[dict]:
     # Group the raw event log into readable turns (each agent run emits one
     # `init`). The `result` event repeats the answer already captured by the
     # `text` event, so we keep only its metrics; empty `thinking` events are
@@ -505,6 +505,25 @@ async def session_detail_page(id: str, request: Request, db: AsyncSession = Depe
                 cur["messages"].append({"kind": "text", "text": payload["result"]})
         elif etype == "error":
             cur["messages"].append({"kind": "error", "text": payload.get("message", "error")})
+    return turns
+
+
+@router.get(
+    "/sessions/{id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin_cookie)],
+)
+async def session_detail_page(id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    session = await db.get(SessionModel, id)
+    events = (
+        (
+            await db.execute(
+                select(Event).where(Event.session_id == id).order_by(Event.seq.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     files: list[dict] = []
     if session is not None:
@@ -512,7 +531,7 @@ async def session_detail_page(id: str, request: Request, db: AsyncSession = Depe
             files = list_files(Path(session.workspace_path))
         except OSError:
             files = []
-
+    turns = build_turns(events)
     return templates.TemplateResponse(
         request,
         "session_detail.html",
@@ -690,7 +709,9 @@ async def completions_page(
     rows = (await db.execute(q)).scalars().all()
     tenants = (await db.execute(select(Tenant).order_by(Tenant.name))).scalars().all()
     return templates.TemplateResponse(
-        request, "completions.html", {"rows": rows, "tenants": tenants, "tenant": tenant}
+        request,
+        "completions.html",
+        {"rows": rows, "tenants": tenants, "tenant_names": _names(tenants), "tenant": tenant},
     )
 
 
@@ -999,6 +1020,7 @@ async def agents_create(request: Request, db: AsyncSession = Depends(get_db)):
         max_iterations=_blank_to_none_int(form.get("max_iterations", "")) or 6,
         is_admin_only=bool(form.get("is_admin_only")),
         bypass_permissions=bool(form.get("bypass_permissions")),
+        portal_visible=bool(form.get("portal_visible")),
     )
     return RedirectResponse(url="/admin/agents", status_code=302)
 
@@ -1024,6 +1046,7 @@ async def agents_update(id: str, request: Request, db: AsyncSession = Depends(ge
         max_iterations=_blank_to_none_int(form.get("max_iterations", "")) or 6,
         is_admin_only=bool(form.get("is_admin_only")),
         bypass_permissions=bool(form.get("bypass_permissions")),
+        portal_visible=bool(form.get("portal_visible")),
     )
     return RedirectResponse(url="/admin/agents", status_code=302)
 

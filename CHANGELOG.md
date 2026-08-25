@@ -1,9 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-08-25
 
 ### Added
-- Usage broken down by API key: a second table on the admin Usage page and a `by_key` list in `GET /v1/usage`.
+- Chat portal at `/chat`: sign in with an API key, threads in a sidebar, plain conversation with web search, per-chat model and effort. Only portal-created chats are listed; admin marks agents "Available in the chat portal".
+- Landing page at `/` linking the chat portal and the admin console.
+- Usage broken down by API key: admin Usage table and `by_key` in `GET /v1/usage`.
+- Admin Sessions page: tenant and source (portal / cli / api) filters; tenant names shown instead of ids across Keys, Sessions, Completions, and Usage.
+
+### Changed
+- Sessions record their origin (`portal`, `cli`, `api`); session-level model/effort overrides are honoured by the runner.
 
 ## [1.2.1] - 2026-08-25
 

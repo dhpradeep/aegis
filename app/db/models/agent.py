@@ -26,6 +26,7 @@ class Agent(Base):
     max_cost_usd: Mapped[Optional[float]] = mapped_column(nullable=True, default=None)
     max_iterations: Mapped[int] = mapped_column(default=6)
     is_admin_only: Mapped[bool] = mapped_column(default=False)
+    portal_visible: Mapped[bool] = mapped_column(default=False, server_default="0")
     # When True, runs use the SDK's `bypassPermissions` mode: the agent may
     # execute any command/tool with no approval gate. Meant for trusted,
     # admin-only "builder" agents in an isolated workspace. Overrides

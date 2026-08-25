@@ -22,7 +22,7 @@
       {% for r in rows %}
       <tr>
         <td><a class="mono" href="/admin/completions/{{ r.id }}">{{ r.id }}</a></td>
-        <td class="mono">{{ r.tenant_id }}</td>
+        <td title="{{ r.tenant_id }}">{{ tenant_names.get(r.tenant_id, r.tenant_id) }}</td>
         <td>{{ r.model }}</td>
         <td>{% if r.streamed %}<span class="badge badge-accent plain">stream</span>{% else %}<span class="badge badge-muted plain">blocking</span>{% endif %}</td>
         <td>{{ r.input_tokens }}</td>

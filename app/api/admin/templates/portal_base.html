@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Chat{% endblock %} · Aegis</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/static/favicon.svg?v={{ asset_version }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/static/dashboard.css?v={{ asset_version }}">
+  <script>
+    (function () {
+      var t;
+      try { t = localStorage.getItem('admin-theme'); } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+    })();
+  </script>
+</head>
+<body class="portal">
+  <div class="pshell" id="pshell">
+    {% if portal_key %}
+    <aside class="pside">
+      <div class="pside-head">
+        <a class="portal-brand" href="/chat"><span class="brand-mark"></span><span>Aegis <span class="portal-brand-sub">Chat</span></span></a>
+        <button type="button" class="pside-close" aria-label="Close threads" onclick="document.getElementById('pshell').classList.remove('side-open')">&times;</button>
+      </div>
+      <a class="btn pnew {{ 'is-active' if current is none and request.url.path == '/chat' else '' }}" href="/chat">
+        <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New chat
+      </a>
+      <div class="pthreads">
+        {% for t in threads %}
+        <a class="pthread {{ 'active' if t.id == current else '' }}" href="/chat/s/{{ t.id }}" title="{{ t.title or t.id }}">
+          <span class="pthread-title">{{ t.title or "Untitled chat" }}</span>
+          <span class="pthread-sub">{{ t.profile }}{% if t.status == "running" %} · running{% endif %}</span>
+        </a>
+        {% else %}
+        <div class="pthreads-empty">No chats yet.</div>
+        {% endfor %}
+      </div>
+      <div class="pside-foot">
+        <a class="pfoot-link {{ 'active' if request.url.path == '/chat/usage' else '' }}" href="/chat/usage">Usage</a>
+        <span class="portal-key mono" title="{{ portal_key.name }}">{{ portal_key.prefix }}…</span>
+        <button type="button" class="foot-btn theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle color theme">
+          <span class="theme-ic">
+            <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+          </span>
+        </button>
+        <a class="foot-btn foot-logout" href="/chat/logout" title="Log out" aria-label="Log out">
+          <svg viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/></svg>
+        </a>
+      </div>
+    </aside>
+    <div class="pside-backdrop" onclick="document.getElementById('pshell').classList.remove('side-open')"></div>
+    {% endif %}
+    <script>
+      function _effectiveDark() {
+        var explicit = document.documentElement.getAttribute('data-theme');
+        if (explicit) return explicit === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      function _syncThemeButton() { document.documentElement.classList.toggle('is-dark', _effectiveDark()); }
+      function toggleTheme() {
+        var next = _effectiveDark() ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('admin-theme', next); } catch (e) {}
+        _syncThemeButton();
+      }
+      _syncThemeButton();
+    </script>
+    <main class="main pmain">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="/admin/static/dropdown.js?v={{ asset_version }}" defer></script>
+  <script src="/admin/static/md.js?v={{ asset_version }}" defer></script>
+</body>
+</html>

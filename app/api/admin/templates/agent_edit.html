@@ -77,6 +77,7 @@
       <div class="field">
         <label>Access</label>
         <label class="switch-row"><input type="checkbox" name="is_admin_only" value="true" {{ 'checked' if agent and agent.is_admin_only else '' }}> Admin-only agent</label>
+        <label class="switch-row"><input type="checkbox" name="portal_visible" value="true" {{ 'checked' if agent and agent.portal_visible else '' }}> Available in the chat portal</label>
         <span class="field-note">Only admin-issued sessions/objectives may use this agent.</span>
       </div>
     </div>

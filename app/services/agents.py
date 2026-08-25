@@ -42,6 +42,7 @@ _PLAIN_FIELDS = {
     "max_iterations",
     "is_admin_only",
     "bypass_permissions",
+    "portal_visible",
 }
 
 # Fields that map to a `<field>_json` column and must be json.dumps'd.
@@ -96,6 +97,7 @@ async def create_agent(
     max_iterations: int = 6,
     is_admin_only: bool = False,
     bypass_permissions: bool = False,
+    portal_visible: bool = False,
 ) -> Agent:
     """Create a new Agent row. `name` must be unique. Validates `roster` via
     `_validate_roster` before persisting."""
@@ -125,6 +127,7 @@ async def create_agent(
         max_iterations=max_iterations,
         is_admin_only=is_admin_only,
         bypass_permissions=bypass_permissions,
+        portal_visible=portal_visible,
     )
     db.add(agent)
     await db.commit()
@@ -224,3 +227,49 @@ async def seed_default_agent(db: AsyncSession) -> None:
         )
     )
     await db.commit()
+
+
+CHAT_AGENT_NAME = "chat"
+_CHAT_AGENT_TOOLS = ["WebSearch"]
+
+
+async def seed_chat_agent(db: AsyncSession) -> None:
+    existing = (
+        await db.execute(select(Agent).where(Agent.name == CHAT_AGENT_NAME))
+    ).scalar_one_or_none()
+    if existing is not None:
+        return
+    db.add(
+        Agent(
+            id="agt_" + token_hex(8),
+            name=CHAT_AGENT_NAME,
+            description="Conversational assistant with web search.",
+            model=get_settings().default_model,
+            effort=None,
+            system_prompt=None,
+            allowed_tools_json=json.dumps(_CHAT_AGENT_TOOLS),
+            permission_mode="default",
+            mcp_names_json=json.dumps([]),
+            roster_json=json.dumps([]),
+            max_cost_usd=None,
+            max_iterations=6,
+            is_admin_only=False,
+            bypass_permissions=False,
+            portal_visible=True,
+        )
+    )
+    await db.commit()
+
+
+async def list_portal_agents(db: AsyncSession) -> list[Agent]:
+    return (
+        (
+            await db.execute(
+                select(Agent)
+                .where(Agent.portal_visible.is_(True), Agent.is_admin_only.is_(False))
+                .order_by(Agent.name)
+            )
+        )
+        .scalars()
+        .all()
+    )

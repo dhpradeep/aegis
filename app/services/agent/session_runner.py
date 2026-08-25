@@ -107,6 +107,10 @@ async def build_run_config(
     permission_mode = (
         "bypassPermissions" if agent.bypass_permissions else agent.permission_mode
     )
+    try:
+        overrides = json.loads(session.overrides_json or "{}")
+    except (json.JSONDecodeError, TypeError):
+        overrides = {}
 
     return _run_config(
         prompt=prompt,
@@ -115,10 +119,10 @@ async def build_run_config(
         allowed_tools=json.loads(agent.allowed_tools_json),
         permission_mode=permission_mode,
         mcp_servers=mcp_servers,
-        model=agent.model,
+        model=overrides.get("model") or agent.model,
         max_turns=_AGENT_MAX_TURNS,
         agents=agents,
-        effort=agent.effort,
+        effort=overrides.get("effort") or agent.effort,
     )
 
 

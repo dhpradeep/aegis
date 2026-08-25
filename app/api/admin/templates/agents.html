@@ -38,6 +38,7 @@
         <td>{{ a.permission_mode }}</td>
         <td>{{ a.roster_json|from_json|length }}</td>
         <td>
+          {% if a.portal_visible %}<span class="badge badge-ok plain">portal</span>{% endif %}
           {% if a.is_admin_only %}<span class="badge badge-accent">admin</span>
           {% else %}<span class="badge badge-muted plain">all</span>{% endif %}
         </td>

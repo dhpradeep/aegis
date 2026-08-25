@@ -645,3 +645,26 @@ async def test_delete_key_requires_revoke_and_detaches_usage(admin_client):
     async with SessionLocal() as db:
         rows = (await db.execute(select(Usage).where(Usage.tenant_id == tenant_id))).scalars().all()
     assert len(rows) == 1 and rows[0].api_key_id is None
+
+
+@pytest.mark.anyio
+async def test_sessions_page_tenant_and_origin_filters(client):
+    from app.db.base import SessionLocal
+    from app.db.models import Tenant
+    from app.services.sessions import create_session_record
+    from tests.conftest import _default_agent_id, _seed_key
+
+    await _seed_key("t_a", "k_a")
+    await _seed_key("t_b", "k_b")
+    agent = await _default_agent_id()
+    async with SessionLocal() as db:
+        await create_session_record(db, tenant_id="t_a", agent_id=agent, title="alpha-chat", origin="portal")
+        await create_session_record(db, tenant_id="t_b", agent_id=agent, title="beta-chat")
+
+    assert (await client.post("/admin/login", data={"password": "admin"})).status_code == 302
+    r = await client.get("/admin/sessions")
+    assert "alpha-chat" in r.text and "beta-chat" in r.text
+    r = await client.get("/admin/sessions?tenant=t_a")
+    assert "alpha-chat" in r.text and "beta-chat" not in r.text
+    r = await client.get("/admin/sessions?origin=api")
+    assert "beta-chat" in r.text and "alpha-chat" not in r.text

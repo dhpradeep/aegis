@@ -55,6 +55,20 @@
 {% endif %}
 
 <div class="section-title">All sessions</div>
+<form method="get" class="table-filters">
+  <select name="tenant" data-searchable data-placeholder="All tenants" onchange="this.form.submit()">
+    <option value="">All tenants</option>
+    {% for t in tenants %}
+    <option value="{{ t.id }}" {% if t.id == tenant %}selected{% endif %}>{{ t.name }} · {{ t.id }}</option>
+    {% endfor %}
+  </select>
+  <select name="origin" onchange="this.form.submit()">
+    <option value="">All sources</option>
+    {% for o in ["portal", "cli", "api"] %}
+    <option value="{{ o }}" {% if o == origin %}selected{% endif %}>{{ o }}</option>
+    {% endfor %}
+  </select>
+</form>
 <div class="table-wrap scroll">
   <table>
     <thead>
@@ -64,7 +78,7 @@
       {% for s in sessions %}
       <tr>
         <td><a class="mono" href="/admin/sessions/{{ s.id }}">{{ s.id }}</a></td>
-        <td class="mono">{{ s.tenant_id }}</td>
+        <td title="{{ s.tenant_id }}">{{ tenant_names.get(s.tenant_id, s.tenant_id) }}</td>
         <td>{{ s.profile }}</td>
         <td>
           {% if s.status == "running" %}<span class="badge badge-warn">running</span>
